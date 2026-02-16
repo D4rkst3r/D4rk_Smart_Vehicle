@@ -54,8 +54,8 @@ Config.Vehicles = {
         label = 'Feuerwehr Drehleiter',
         description = 'Drehleiter mit Rettungskorb und Wasserwerfer',
 
-        -- Bone Configuration
         bones = {
+            -- BONE 1: Turm Rotation
             {
                 name = 'bumper_r',
                 label = 'Turm Rotation',
@@ -65,8 +65,15 @@ Config.Vehicles = {
                 max = 270.0,
                 default = 0.0,
                 speed = 0.4,
-                controlGroup = 'turret'
+                controlGroup = 'turret',
+                -- NEU: Prop-System
+                propModel = 'prop_roadcone02a',           -- Test-Prop (später eigenes Modell!)
+                attachTo = 'vehicle',                     -- Direkt am Fahrzeug
+                attachBone = 'bodyshell',                 -- Vehicle-Bone als Referenzpunkt
+                defaultOffset = vector3(0.0, -1.0, 2.5),  -- Position auf dem Dach
+                defaultRotation = vector3(0.0, 0.0, 0.0), -- Start-Rotation
             },
+            -- BONE 2: Leiter Anheben (hängt am Turm-Prop!)
             {
                 name = 'turret_1base',
                 label = 'Leiter Anheben',
@@ -77,31 +84,48 @@ Config.Vehicles = {
                 default = 0.0,
                 speed = 0.3,
                 controlGroup = 'ladder',
-                soundEffect = 'hydraulic'
+                soundEffect = 'hydraulic',
+                -- NEU: Prop-System
+                propModel = 'prop_roadcone02a',         -- Test-Prop
+                attachTo = '1',                         -- An Prop #1 (Turm!) hängen!
+                defaultOffset = vector3(0.0, 0.0, 0.5), -- Über dem Turm
+                defaultRotation = vector3(0.0, 0.0, 0.0),
             },
+            -- BONE 3: Leiter Ausfahren (hängt an der Leiter!)
             {
-                name = 'misc_c',
+                name = 'ladder_extend',
                 label = 'Leiter Ausfahren',
                 type = 'position',
                 axis = 'y',
                 min = 0.0,
-                max = 10.0,
+                max = 8.0,
                 default = 0.0,
                 speed = 0.15,
                 controlGroup = 'ladder',
-                soundEffect = 'hydraulic'
+                soundEffect = 'hydraulic',
+                -- NEU: Prop-System
+                propModel = 'prop_roadcone02a', -- Test-Prop
+                attachTo = '2',                 -- An Prop #2 (Leiter!) hängen!
+                defaultOffset = vector3(0.0, 0.5, 0.0),
+                defaultRotation = vector3(0.0, 0.0, 0.0),
             },
+            -- BONE 4: Korb Rotation (hängt an der ausgefahrenen Leiter!)
             {
-                name = 'misc_d',
-                label = 'Korb Neigung',
+                name = 'basket_rotate',
+                label = 'Korb Rotation',
                 type = 'rotation',
-                axis = 'x',
-                min = -45.0,
-                max = 45.0,
+                axis = 'z',
+                min = -180.0,
+                max = 180.0,
                 default = 0.0,
-                speed = 0.25,
-                controlGroup = 'basket'
-            }
+                speed = 0.3,
+                controlGroup = 'basket',
+                -- NEU: Prop-System
+                propModel = 'prop_roadcone02a', -- Test-Prop
+                attachTo = '3',                 -- An Prop #3 (ausgefahrene Leiter!)
+                defaultOffset = vector3(0.0, 0.0, 0.0),
+                defaultRotation = vector3(0.0, 0.0, 0.0),
+            },
         },
 
         -- Props System (London Studios Style) - NEW!
@@ -166,7 +190,7 @@ Config.Vehicles = {
         -- Water Monitor (Wasserwerfer)
         waterMonitor = {
             enabled = true,
-            bone = 'misc_d',
+            bone = 'basket_rotate',
             offset = vector3(0.0, 1.0, 0.3),
             rotation = vector3(0.0, 0.0, 0.0),
             particleEffect = 'core',
@@ -260,7 +284,13 @@ Config.Vehicles = {
                 max = 180.0,
                 default = 0.0,
                 speed = 0.5,
-                controlGroup = 'crane'
+                controlGroup = 'crane',
+                -- NEU:
+                propModel = 'prop_roadcone02a',
+                attachTo = 'vehicle',
+                attachBone = 'bodyshell',
+                defaultOffset = vector3(0.0, -2.0, 1.5),
+                defaultRotation = vector3(0.0, 0.0, 0.0),
             },
             {
                 name = 'misc_b',
@@ -272,7 +302,12 @@ Config.Vehicles = {
                 default = 0.0,
                 speed = 0.3,
                 controlGroup = 'crane',
-                soundEffect = 'hydraulic'
+                soundEffect = 'hydraulic',
+                -- NEU:
+                propModel = 'prop_roadcone02a',
+                attachTo = '1',
+                defaultOffset = vector3(0.0, 0.0, 0.5),
+                defaultRotation = vector3(0.0, 0.0, 0.0),
             },
             {
                 name = 'misc_c',
@@ -284,7 +319,12 @@ Config.Vehicles = {
                 default = 0.0,
                 speed = 0.12,
                 controlGroup = 'crane',
-                soundEffect = 'hydraulic'
+                soundEffect = 'hydraulic',
+                -- NEU:
+                propModel = 'prop_roadcone02a',
+                attachTo = '2',
+                defaultOffset = vector3(0.0, 0.5, 0.0),
+                defaultRotation = vector3(0.0, 0.0, 0.0),
             },
             {
                 name = 'misc_d',
@@ -296,10 +336,14 @@ Config.Vehicles = {
                 default = 0.0,
                 speed = 0.25,
                 controlGroup = 'winch',
-                soundEffect = 'winch'
+                soundEffect = 'winch',
+                -- NEU:
+                propModel = 'prop_roadcone02a',
+                attachTo = '3',
+                defaultOffset = vector3(0.0, 0.0, -0.5),
+                defaultRotation = vector3(0.0, 0.0, 0.0),
             }
         },
-
         stabilizers = {
             enabled = true,
             required = false,

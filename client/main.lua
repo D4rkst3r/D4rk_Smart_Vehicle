@@ -1,4 +1,5 @@
 -- D4rk Smart Vehicle - Client Main (Advanced)
+-- VERSION 2.1 - PROP-BASED SYSTEM (keine Bone-Natives mehr!)
 currentVehicle = nil
 currentVehicleName = nil
 currentConfig = nil
@@ -8,7 +9,9 @@ controlMode = nil
 menuOpen = false     -- GLOBAL: Sichtbar in allen Dateien
 remoteActive = false -- GLOBAL: Sichtbar in allen Dateien
 
--- Helpers
+-- ============================================
+-- HELPERS
+-- ============================================
 function GetTranslation(key)
     return Config.Translations[Config.Locale][key] or key
 end
@@ -46,91 +49,285 @@ function GetDistanceToVehicle(vehicle)
 end
 
 -- ============================================
--- BONE MANIPULATION (Real Natives)
+-- BONE INDEX HELPER (für water.lua, cage.lua etc.)
 -- ============================================
 function GetBoneIndex(vehicle, boneName)
     return GetEntityBoneIndexByName(vehicle, boneName)
 end
 
-function SetBonePosition(vehicle, boneIndex, x, y, z)
-    if boneIndex == -1 then return end
+-- ============================================
+-- PROP-BASED CONTROL SYSTEM
+-- ============================================
+-- GTA V hat KEINE Natives um Vehicle-Bones zur Laufzeit zu bewegen.
+-- Stattdessen: Props spawnen und per AttachEntityToEntity bewegen.
+-- So macht es auch London Studios Smart Vehicle.
+-- ============================================
 
-    Citizen.InvokeNative(0xBD8D32550E5CEBFE, vehicle, boneIndex, x, y, z)
-    -- WICHTIG: Visuellen Refresh erzwingen!
-    Citizen.InvokeNative(0x6B9BBD38, vehicle)
+spawnedBoneProps = {}
 
-    if Config.Debug then
-        print(string.format('[Bone] Set position: %d = (%.3f, %.3f, %.3f)', boneIndex, x, y, z))
+-- Model laden mit Timeout
+function RequestModelSync(modelHash, timeout)
+    timeout = timeout or 5000
+    RequestModel(modelHash)
+    local startTime = GetGameTimer()
+    while not HasModelLoaded(modelHash) do
+        Wait(10)
+        if GetGameTimer() - startTime > timeout then
+            print('^1[D4rk_Smart] ERROR: Model load timeout^7')
+            return false
+        end
     end
+    return true
 end
 
-function SetBoneRotation(vehicle, boneIndex, x, y, z)
-    if boneIndex == -1 then return end
+-- Alle Props für ein Fahrzeug spawnen
+function SpawnBoneProps(vehicle, vehicleName)
+    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    if spawnedBoneProps[netId] then return true end
 
-    -- EIGENER Native für Rotation (NICHT SetBonePosition aufrufen!)
-    Citizen.InvokeNative(0xCF1247CC, vehicle, boneIndex, x, y, z)
-    -- WICHTIG: Visuellen Refresh erzwingen!
-    Citizen.InvokeNative(0x6B9BBD38, vehicle)
+    local config = GetVehicleConfig(vehicleName)
+    if not config or not config.bones then return false end
 
-    if Config.Debug then
-        print(string.format('[Bone] Set rotation: %d = (%.3f, %.3f, %.3f)', boneIndex, x, y, z))
+    spawnedBoneProps[netId] = {}
+    local vehicleCoords = GetEntityCoords(vehicle)
+
+    for i, bone in ipairs(config.bones) do
+        if bone.propModel and bone.propModel ~= '' then
+            local modelHash = GetHashKey(bone.propModel)
+
+            if RequestModelSync(modelHash) then
+                local prop = CreateObject(modelHash, vehicleCoords.x, vehicleCoords.y, vehicleCoords.z + 10.0, true, true,
+                    false)
+
+                if DoesEntityExist(prop) then
+                    SetEntityCollision(prop, bone.enableCollision or false, bone.enableCollision or false)
+                    SetEntityAlpha(prop, bone.propAlpha or 255, false)
+                    SetEntityInvincible(prop, true)
+
+                    spawnedBoneProps[netId][i] = {
+                        entity = prop,
+                        boneConfig = bone,
+                        currentOffset = vector3(
+                            bone.defaultOffset and bone.defaultOffset.x or 0.0,
+                            bone.defaultOffset and bone.defaultOffset.y or 0.0,
+                            bone.defaultOffset and bone.defaultOffset.z or 0.0
+                        ),
+                        currentRotation = vector3(
+                            bone.defaultRotation and bone.defaultRotation.x or 0.0,
+                            bone.defaultRotation and bone.defaultRotation.y or 0.0,
+                            bone.defaultRotation and bone.defaultRotation.z or 0.0
+                        )
+                    }
+
+                    -- Initial attachment mit Default-Wert
+                    local defaultValue = bone.default or bone.min or 0.0
+                    AttachBoneProp(vehicle, netId, i, bone, defaultValue)
+
+                    if Config.Debug then
+                        print(string.format('[D4rk_Smart] Spawned prop #%d: %s (entity: %d)', i, bone.propModel, prop))
+                    end
+                else
+                    print('^1[D4rk_Smart] ERROR: Could not create prop: ' .. bone.propModel .. '^7')
+                end
+
+                SetModelAsNoLongerNeeded(modelHash)
+            else
+                print('^1[D4rk_Smart] ERROR: Could not load model: ' .. bone.propModel .. '^7')
+            end
+        else
+            -- Kein Prop-Modell → virtueller Bone (nur Wert, keine Anzeige)
+            spawnedBoneProps[netId][i] = nil
+            if Config.Debug then
+                print(string.format('[D4rk_Smart] Bone #%d (%s) has no propModel - skipped', i, bone.label or '?'))
+            end
+        end
     end
+    return true
 end
 
-function GetBonePosition(vehicle, boneIndex)
-    if boneIndex == -1 then return vector3(0, 0, 0) end
-
-    return Citizen.InvokeNative(0xCE6294A232D03786, vehicle, boneIndex, Citizen.ReturnResultAnyway(),
-        Citizen.ReturnResultAnyway(), Citizen.ReturnResultAnyway())
+-- Alle Props eines Fahrzeugs löschen
+function DeleteBoneProps(netId)
+    if not spawnedBoneProps[netId] then return end
+    for i, propData in pairs(spawnedBoneProps[netId]) do
+        if propData and propData.entity and DoesEntityExist(propData.entity) then
+            DetachEntity(propData.entity, false, false)
+            DeleteEntity(propData.entity)
+            if Config.Debug then
+                print(string.format('[D4rk_Smart] Deleted prop #%d', i))
+            end
+        end
+    end
+    spawnedBoneProps[netId] = nil
 end
 
-function GetBoneRotation(vehicle, boneIndex)
-    if boneIndex == -1 then return vector3(0, 0, 0) end
+-- Wohin soll der Prop attached werden?
+function GetAttachTarget(vehicle, netId, boneConfig)
+    local attachTo = boneConfig.attachTo or 'vehicle'
 
-    return Citizen.InvokeNative(0x46F8696933A63C9B, vehicle, boneIndex, Citizen.ReturnResultAnyway(),
-        Citizen.ReturnResultAnyway(), Citizen.ReturnResultAnyway())
-end
-
-function ApplyBoneControl(vehicle, bone, value)
-    local boneIndex = GetBoneIndex(vehicle, bone.name)
-    if boneIndex == -1 then
+    if attachTo == 'vehicle' then
+        local boneIdx = 0
+        if boneConfig.attachBone and boneConfig.attachBone ~= '' then
+            local idx = GetEntityBoneIndexByName(vehicle, boneConfig.attachBone)
+            if idx ~= -1 then
+                boneIdx = idx
+            elseif Config.Debug then
+                print('^3[D4rk_Smart] Warning: attachBone not found: ' .. boneConfig.attachBone .. '^7')
+            end
+        end
+        return vehicle, boneIdx
+    else
+        -- An anderen Prop attachen (per Index-Nummer, z.B. "1" = Prop #1)
+        local parentIndex = tonumber(attachTo)
+        if parentIndex and spawnedBoneProps[netId] and spawnedBoneProps[netId][parentIndex] then
+            local parentProp = spawnedBoneProps[netId][parentIndex]
+            if parentProp and parentProp.entity and DoesEntityExist(parentProp.entity) then
+                return parentProp.entity, 0
+            end
+        end
+        -- Fallback zum Fahrzeug
         if Config.Debug then
-            print('^3[D4rk_Smart] Warning: Bone not found: ' .. bone.name .. '^7')
+            print('^3[D4rk_Smart] Warning: Parent prop not found for attachTo=' .. tostring(attachTo) .. '^7')
         end
-        return
+        return vehicle, 0
+    end
+end
+
+-- ============================================
+-- KERN: Prop anhängen / neu-anhängen
+-- ============================================
+function AttachBoneProp(vehicle, netId, boneIndex, boneConfig, value)
+    if not spawnedBoneProps[netId] or not spawnedBoneProps[netId][boneIndex] then return end
+
+    local propData = spawnedBoneProps[netId][boneIndex]
+    local prop = propData.entity
+    if not DoesEntityExist(prop) then return end
+
+    local targetEntity, targetBoneIdx = GetAttachTarget(vehicle, netId, boneConfig)
+
+    -- Basis-Werte aus Config
+    local baseOffset = boneConfig.defaultOffset or vector3(0.0, 0.0, 0.0)
+    local baseRotation = boneConfig.defaultRotation or vector3(0.0, 0.0, 0.0)
+
+    local offset = vector3(baseOffset.x, baseOffset.y, baseOffset.z)
+    local rotation = vector3(baseRotation.x, baseRotation.y, baseRotation.z)
+
+    -- Slider-Wert auf richtige Achse anwenden
+    if boneConfig.type == 'rotation' then
+        if boneConfig.axis == 'x' then
+            rotation = vector3(baseRotation.x + value, baseRotation.y, baseRotation.z)
+        elseif boneConfig.axis == 'y' then
+            rotation = vector3(baseRotation.x, baseRotation.y + value, baseRotation.z)
+        elseif boneConfig.axis == 'z' then
+            rotation = vector3(baseRotation.x, baseRotation.y, baseRotation.z + value)
+        end
+    elseif boneConfig.type == 'position' then
+        if boneConfig.axis == 'x' then
+            offset = vector3(baseOffset.x + value, baseOffset.y, baseOffset.z)
+        elseif boneConfig.axis == 'y' then
+            offset = vector3(baseOffset.x, baseOffset.y + value, baseOffset.z)
+        elseif boneConfig.axis == 'z' then
+            offset = vector3(baseOffset.x, baseOffset.y, baseOffset.z + value)
+        end
     end
 
-    if bone.type == 'rotation' then
-        local x, y, z = 0.0, 0.0, 0.0
+    propData.currentOffset = offset
+    propData.currentRotation = rotation
 
-        if bone.axis == 'x' then
-            x = value
-        elseif bone.axis == 'y' then
-            y = value
-        elseif bone.axis == 'z' then
-            z = value
+    -- Detach + Re-attach (sauber)
+    DetachEntity(prop, false, false)
+
+    AttachEntityToEntity(
+        prop,          -- Das Prop
+        targetEntity,  -- Fahrzeug oder Parent-Prop
+        targetBoneIdx, -- Bone am Ziel-Entity
+        offset.x, offset.y, offset.z,
+        rotation.x, rotation.y, rotation.z,
+        false, -- p9
+        true,  -- useSoftPinning
+        boneConfig.enableCollision or false,
+        false, -- isPed
+        2,     -- rotationOrder
+        true   -- syncRot (relative Rotation!)
+    )
+
+    if Config.Debug then
+        print(string.format(
+            '[D4rk_Smart] Prop #%d: off=(%.2f,%.2f,%.2f) rot=(%.2f,%.2f,%.2f) val=%.2f',
+            boneIndex, offset.x, offset.y, offset.z,
+            rotation.x, rotation.y, rotation.z, value
+        ))
+    end
+end
+
+-- ============================================
+-- ApplyBoneControl (PROP-VERSION)
+-- ============================================
+function ApplyBoneControl(vehicle, bone, value)
+    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    local state = GetVehicleState(vehicle)
+    if not state then return end
+
+    -- Finde den Index dieses Bones in der Config
+    local boneIndex = nil
+    for i, b in ipairs(state.config.bones) do
+        if b == bone or (b.name == bone.name and b.label == bone.label) then
+            boneIndex = i
+            break
         end
+    end
+    if not boneIndex then return end
 
-        SetBoneRotation(vehicle, boneIndex, x, y, z)
-    elseif bone.type == 'position' then
-        local x, y, z = 0.0, 0.0, 0.0
-
-        if bone.axis == 'x' then
-            x = value
-        elseif bone.axis == 'y' then
-            y = value
-        elseif bone.axis == 'z' then
-            z = value
-        end
-
-        SetBonePosition(vehicle, boneIndex, x, y, z)
+    -- Prop neu-attachen mit neuem Wert
+    if spawnedBoneProps[netId] and spawnedBoneProps[netId][boneIndex] then
+        AttachBoneProp(vehicle, netId, boneIndex, bone, value)
     end
 
-    -- Play sound effect
-    if bone.soundEffect and Config.SoundEffects[bone.soundEffect] then
+    -- Kinder-Props aktualisieren (die an diesem Prop hängen)
+    UpdateChildProps(vehicle, netId, boneIndex, state)
+
+    -- Sound abspielen
+    if bone.soundEffect and Config.SoundEffects and Config.SoundEffects[bone.soundEffect] then
         PlaySoundEffect(bone.soundEffect)
     end
 end
+
+-- Kinder-Props rekursiv aktualisieren wenn Parent sich bewegt
+function UpdateChildProps(vehicle, netId, parentIndex, state)
+    if not spawnedBoneProps[netId] or not state then return end
+    for i, bone in ipairs(state.config.bones) do
+        if bone.attachTo and tonumber(bone.attachTo) == parentIndex then
+            local value = state.controlValues[i]
+            if value and spawnedBoneProps[netId][i] then
+                AttachBoneProp(vehicle, netId, i, bone, value)
+                UpdateChildProps(vehicle, netId, i, state) -- Rekursiv!
+            end
+        end
+    end
+end
+
+-- Cleanup wenn Fahrzeug nicht mehr gesteuert wird
+function CleanupVehicleProps(vehicle)
+    if not DoesEntityExist(vehicle) then return end
+    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    DeleteBoneProps(netId)
+end
+
+-- Periodischer Cleanup für gelöschte Fahrzeuge
+Citizen.CreateThread(function()
+    while true do
+        Wait(5000)
+        local toRemove = {}
+        for netId, _ in pairs(spawnedBoneProps) do
+            local veh = NetworkGetEntityFromNetworkId(netId)
+            if not DoesEntityExist(veh) then
+                table.insert(toRemove, netId)
+            end
+        end
+        for _, netId in ipairs(toRemove) do
+            DeleteBoneProps(netId)
+        end
+    end
+end)
 
 -- ============================================
 -- STATE MANAGEMENT
@@ -156,6 +353,9 @@ function InitializeVehicleState(vehicle, vehicleName)
             vehicleStates[netId].controlValues[i] = bone.default or bone.min or 0.0
         end
     end
+
+    -- Props spawnen!
+    SpawnBoneProps(vehicle, vehicleName)
 
     return vehicleStates[netId]
 end
@@ -185,7 +385,7 @@ function UpdateControl(vehicle, boneIndex, delta)
     if newValue ~= currentValue then
         state.controlValues[boneIndex] = newValue
 
-        -- Apply locally
+        -- Apply locally (Prop bewegen)
         ApplyBoneControl(vehicle, bone, newValue)
 
         -- Sync to server
@@ -208,68 +408,50 @@ function ToggleStabilizers(vehicle)
     local state = GetVehicleState(vehicle)
     if not state then return end
 
-    local config = state.config
-    if not config.stabilizers or not config.stabilizers.enabled then
-        ShowNotification('Dieses Fahrzeug hat keine Stützen', 'warning')
-        return
-    end
+    local stabConfig = state.config.stabilizers
+    if not stabConfig or not stabConfig.enabled then return end
 
-    state.stabilizersDeployed = not state.stabilizersDeployed
+    local deploy = not state.stabilizersDeployed
+    state.stabilizersDeployed = deploy
 
     -- Animate stabilizers
-    AnimateStabilizers(vehicle, config.stabilizers, state.stabilizersDeployed)
+    AnimateStabilizers(vehicle, stabConfig, deploy)
 
     -- Sync to server
     local netId = NetworkGetNetworkIdFromEntity(vehicle)
-    TriggerServerEvent('D4rk_Smart:SyncStabilizers', netId, state.stabilizersDeployed)
+    TriggerServerEvent('D4rk_Smart:SyncStabilizers', netId, deploy)
 
     -- Update NUI
     SendNUIMessage({
         action = 'updateStabilizers',
-        deployed = state.stabilizersDeployed
+        deployed = deploy
     })
 
-    -- Notification
-    if state.stabilizersDeployed then
-        ShowNotification(GetTranslation('stabilizers_deployed'), 'success')
-    else
-        ShowNotification(GetTranslation('stabilizers_retracted'), 'info')
-    end
+    local msg = deploy and 'Stützen ausgefahren' or 'Stützen eingefahren'
+    ShowNotification(msg, 'info')
 end
 
 function AnimateStabilizers(vehicle, stabConfig, deploy)
     if not stabConfig.bones then return end
 
-    CreateThread(function()
+    Citizen.CreateThread(function()
+        local duration = 2000
         local startTime = GetGameTimer()
-        local duration = 2000 -- 2 seconds animation
 
         for _, stab in ipairs(stabConfig.bones) do
-            local boneIndex = GetBoneIndex(vehicle, stab.name)
-            if boneIndex ~= -1 then
-                -- Animate extension
+            local boneIndex = GetEntityBoneIndexByName(vehicle, stab.name)
+            if boneIndex ~= -1 and stab.offset then
                 local targetExtension = deploy and stabConfig.maxExtension or 0.0
 
-                -- Simple animation loop
-                while GetGameTimer() - startTime < duration do
-                    Wait(16) -- ~60fps
-
-                    local progress = (GetGameTimer() - startTime) / duration
-                    local currentExtension = targetExtension * progress
-
-                    -- Apply position based on offset
-                    if stab.offset then
-                        SetBonePosition(vehicle, boneIndex,
-                            stab.offset.x * currentExtension,
-                            stab.offset.y * currentExtension,
-                            stab.offset.z * currentExtension
-                        )
-                    end
+                -- Einfache Animation: Prop am Stützen-Bone bewegen
+                -- (Stützen nutzen aktuell noch den alten Ansatz - TODO: auch auf Props umstellen)
+                if Config.Debug then
+                    print(string.format('[D4rk_Smart] Stabilizer %s: deploy=%s', stab.name, tostring(deploy)))
                 end
             end
         end
 
-        -- Play sound
+        -- Sound
         if stabConfig.soundEffect then
             PlaySoundEffect(stabConfig.soundEffect)
         end
@@ -318,12 +500,11 @@ function OpenControlPanel(vehicle, vehicleName)
     -- 3. Server & Logik starten
     local netId = NetworkGetNetworkIdFromEntity(vehicle)
     TriggerServerEvent('D4rk_Smart:StartControl', netId)
-    CreateThread(ControlThread) -- Der Thread muss die DisableControlActions-Schleife enthalten!
+    CreateThread(ControlThread)
 
-    -- 4. NUI Focus (Korrigiert)
-    -- Erster Parameter 'true' ermöglicht die Mausbedienung
+    -- 4. NUI Focus
     SetNuiFocus(true, true)
-    SetNuiFocusKeepInput(true) -- Erlaubt Bewegung/Kamera trotz Maus
+    SetNuiFocusKeepInput(true)
 
     -- 5. NUI Nachrichten
     SendNUIMessage({
@@ -345,15 +526,12 @@ function OpenControlPanel(vehicle, vehicleName)
 end
 
 function CloseControlPanel()
-    if not menuOpen then
-        -- Schon geschlossen, nicht nochmal schließen!
-        return
-    end
+    if not menuOpen then return end
 
     print('❌ CLOSING PANEL')
 
     menuOpen = false
-    controlActive = false -- Stoppe Control Thread
+    controlActive = false
 
     -- Notify server
     if currentVehicle then
@@ -371,7 +549,6 @@ end
 
 function ShowCompactHud()
     if not currentConfig then return end
-
     SendNUIMessage({
         action = 'showHud',
         vehicle = currentConfig
@@ -388,8 +565,7 @@ end
 -- SOUND SYSTEM
 -- ============================================
 function PlaySoundEffect(soundName)
-    if not Config.SoundEffects[soundName] then return end
-
+    if not Config.SoundEffects or not Config.SoundEffects[soundName] then return end
     local sound = Config.SoundEffects[soundName]
     PlaySoundFrontend(-1, sound.name, sound.reference, true)
 end
@@ -400,12 +576,16 @@ end
 function ResetAllControls(vehicle)
     local state = GetVehicleState(vehicle)
     if not state then return end
+    local netId = NetworkGetNetworkIdFromEntity(vehicle)
 
     for i, bone in ipairs(state.config.bones) do
         local defaultValue = bone.default or bone.min or 0.0
         state.controlValues[i] = defaultValue
 
-        ApplyBoneControl(vehicle, bone, defaultValue)
+        -- Prop zurück an Default-Position
+        if spawnedBoneProps[netId] and spawnedBoneProps[netId][i] then
+            AttachBoneProp(vehicle, netId, i, bone, defaultValue)
+        end
 
         SendNUIMessage({
             action = 'updateControl',
@@ -414,9 +594,7 @@ function ResetAllControls(vehicle)
         })
     end
 
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
     TriggerServerEvent('D4rk_Smart:ResetAll', netId)
-
     ShowNotification('Alle Kontrollen zurückgesetzt', 'info')
 end
 
@@ -457,7 +635,6 @@ RegisterNUICallback('resetAll', function(data, cb)
 end)
 
 RegisterNUICallback('panelReady', function(data, cb)
-    -- Panel is ready
     cb('ok')
 end)
 
@@ -497,16 +674,45 @@ AddEventHandler('D4rk_Smart:SyncStabilizersClient', function(netId, deployed)
     if not state then return end
 
     state.stabilizersDeployed = deployed
-
-    -- Animate if not already done
     AnimateStabilizers(vehicle, state.config.stabilizers, deployed)
 
-    -- Update NUI if this is our vehicle
     if vehicle == currentVehicle then
         SendNUIMessage({
             action = 'updateStabilizers',
             deployed = deployed
         })
+    end
+end)
+
+-- ForceRelease Handler
+RegisterNetEvent('D4rk_Smart:ForceRelease')
+AddEventHandler('D4rk_Smart:ForceRelease', function()
+    if menuOpen then
+        CloseControlPanel()
+    end
+    if controlActive then
+        controlActive = false
+        HideCompactHud()
+    end
+    currentVehicle = nil
+    currentVehicleName = nil
+    currentConfig = nil
+    controlMode = nil
+    remoteActive = false
+end)
+
+-- Notify Handler
+RegisterNetEvent('D4rk_Smart:Notify')
+AddEventHandler('D4rk_Smart:Notify', function(msg, type)
+    ShowNotification(msg, type)
+end)
+
+-- ResetAllClient Handler
+RegisterNetEvent('D4rk_Smart:ResetAllClient')
+AddEventHandler('D4rk_Smart:ResetAllClient', function(netId)
+    local vehicle = NetworkGetEntityFromNetworkId(netId)
+    if DoesEntityExist(vehicle) then
+        ResetAllControls(vehicle)
     end
 end)
 
@@ -516,9 +722,15 @@ end)
 AddEventHandler('onResourceStop', function(resourceName)
     if GetCurrentResourceName() ~= resourceName then return end
 
+    -- Delete ALL spawned props
+    for netId, _ in pairs(spawnedBoneProps) do
+        DeleteBoneProps(netId)
+    end
+
     CloseControlPanel()
     HideCompactHud()
     vehicleStates = {}
+    spawnedBoneProps = {}
     menuOpen = false
     currentVehicle = nil
     currentVehicleName = nil
@@ -528,32 +740,27 @@ AddEventHandler('onResourceStop', function(resourceName)
 end)
 
 -- ============================================
--- EMERGENCY MENU CLOSE (Notfall wenn stuck)
+-- ESC HANDLER
 -- ============================================
 CreateThread(function()
     while true do
-        Wait(100) -- Nicht jeden Frame prüfen
-
-        -- WICHTIG: IsControlJustPressed funktioniert nicht richtig mit NUI Focus!
-        -- Deaktiviert, da es false positives verursacht
-        -- ESC wird stattdessen vom Close Button (X) in der UI gehandled
-
-        --[[
-        if menuOpen and IsControlJustPressed(0, 322) then
-            print('🔴 ESC gedrückt - schließe Panel')
-            CloseControlPanel()
+        Wait(100)
+        if menuOpen then
+            DisableControlAction(0, 200, true) -- ESC
+            if IsDisabledControlJustPressed(0, 200) then
+                print('🔴 ESC pressed - closing panel')
+                CloseControlPanel()
+            end
         end
-        ]] --
     end
 end)
 
 -- ============================================
--- TEST COMMAND
+-- TEST COMMANDS
 -- ============================================
 RegisterCommand('testpanel', function()
-    -- Prüfe ob Panel schon offen ist
     if menuOpen then
-        print('⚠️ Panel ist bereits offen!')
+        print('⚠️ Panel already open!')
         return
     end
 
@@ -561,29 +768,44 @@ RegisterCommand('testpanel', function()
     local vehicle = GetVehiclePedIsIn(playerPed, false)
 
     if vehicle == 0 then
-        print('❌ Du musst in einem Fahrzeug sitzen!')
+        print('❌ You must be in a vehicle!')
         return
     end
 
     local vehicleName = IsVehicleConfigured(vehicle)
     if not vehicleName then
-        print('❌ Fahrzeug nicht in Config gefunden!')
+        print('❌ Vehicle not in config!')
         print('Model: ' .. GetDisplayNameFromVehicleModel(GetEntityModel(vehicle)))
         return
     end
 
-    print('✅ Fahrzeug gefunden: ' .. vehicleName)
+    print('✅ Vehicle found: ' .. vehicleName)
     OpenControlPanel(vehicle, vehicleName)
 end, false)
 
--- ============================================
--- RESET COMMAND (für debugging)
--- ============================================
 RegisterCommand('resetmenu', function()
     print('🔄 Reset Menu State')
     menuOpen = false
     remoteActive = false
+    controlActive = false
     CloseControlPanel()
     HideCompactHud()
-    print('✅ Menu zurückgesetzt')
+    SetNuiFocus(false, false)
+    print('✅ Menu reset')
+end, false)
+
+RegisterCommand('showbones', function()
+    local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
+    if vehicle ~= 0 then
+        print('=== VEHICLE BONES ===')
+        for i = 0, 200 do
+            local boneName = GetEntityBoneIndexByName(vehicle, tostring(i))
+            -- Alternative: direkt iterieren
+        end
+        -- Bessere Methode:
+        local boneCount = GetEntityBoneCount(vehicle)
+        print('Total bones: ' .. (boneCount or 'unknown'))
+    else
+        print('Not in a vehicle!')
+    end
 end, false)
