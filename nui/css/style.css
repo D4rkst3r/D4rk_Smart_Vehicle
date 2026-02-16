@@ -213,10 +213,11 @@ body {
 
 .control-slider-fill {
     height: 100%;
-    background: linear-gradient(90deg, #dc2626, #ef4444);
-    border-radius: 4px;
-    transition: width 0.1s ease-out;
-    position: relative;
+    background: #ef4444; /* Dein Rot */
+    width: 100%; /* Immer 100% breit */
+    transform-origin: left; /* Wichtig: Skalierung startet links */
+    transform: scaleX(0); /* Start bei 0 */
+    transition: transform 0.1s ease-out; /* Macht die Bewegung "weich" */
 }
 
 .control-slider-fill::after {

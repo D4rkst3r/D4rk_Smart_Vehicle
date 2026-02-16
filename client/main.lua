@@ -300,48 +300,36 @@ function OpenControlPanel(vehicle, vehicleName)
         return
     end
 
-    print('=== OPENING CONTROL PANEL ===')
-    print('Vehicle: ' .. vehicleName)
-
+    -- 1. Variablen setzen
     currentVehicle = vehicle
     currentVehicleName = vehicleName
     currentConfig = GetVehicleConfig(vehicleName)
-
     local state = InitializeVehicleState(vehicle, vehicleName)
 
-    -- Set menu open flag
-    menuOpen = true
-
-    -- Starte Control Logic
     local playerPed = PlayerPedId()
-    local inVehicle = IsPedInAnyVehicle(playerPed, false)
-    local mode = inVehicle and 'inside' or 'standing'
+    controlMode = IsPedInAnyVehicle(playerPed, false) and 'inside' or 'standing'
 
-    -- Setze Control Variablen ohne StartControl zu rufen (das würde HUD öffnen)
-    currentVehicle = vehicle
-    currentVehicleName = vehicleName
-    currentConfig = GetVehicleConfig(vehicleName)
-    controlMode = mode
+    -- 2. Status Flags
+    menuOpen = true
     controlActive = true
 
-    -- Notify server
+    -- 3. Server & Logik starten
     local netId = NetworkGetNetworkIdFromEntity(vehicle)
     TriggerServerEvent('D4rk_Smart:StartControl', netId)
+    CreateThread(ControlThread) -- Der Thread muss die DisableControlActions-Schleife enthalten!
 
-    -- Starte Control Thread
-    CreateThread(ControlThread)
+    -- 4. NUI Focus (Korrigiert)
+    -- Erster Parameter 'true' ermöglicht die Mausbedienung
+    SetNuiFocus(true, true)
+    SetNuiFocusKeepInput(true) -- Erlaubt Bewegung/Kamera trotz Maus
 
-    -- Open NUI - NUR Maus Focus, Keyboard geht an FiveM!
-    SetNuiFocus(true, true)    -- false = Keyboard funktioniert in FiveM!
-    SetNuiFocusKeepInput(true) -- Erlaubt Input trotz NUI
-
+    -- 5. NUI Nachrichten
     SendNUIMessage({
         action = 'openPanel',
         vehicle = currentConfig
     })
-    print('✅ NUI Message sent')
 
-    -- Update current values
+    -- Daten-Sync an UI
     for i, bone in ipairs(currentConfig.bones) do
         SendNUIMessage({
             action = 'updateControl',
@@ -350,17 +338,8 @@ function OpenControlPanel(vehicle, vehicleName)
         })
     end
 
-    -- Update stabilizers status
-    SendNUIMessage({
-        action = 'updateStabilizers',
-        deployed = state.stabilizersDeployed
-    })
-
-    -- Update mode
-    SendNUIMessage({
-        action = 'updateMode',
-        mode = mode
-    })
+    SendNUIMessage({ action = 'updateStabilizers', deployed = state.stabilizersDeployed })
+    SendNUIMessage({ action = 'updateMode', mode = controlMode })
 end
 
 function CloseControlPanel()
