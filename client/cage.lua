@@ -203,9 +203,8 @@ Citizen.CreateThread(function()
                             if distance < (config.cage.enterDistance or 3.0) then
                                 sleep = 0
                                 -- Show prompt
-                                BeginTextCommandDisplayHelp('STRING')
-                                AddTextComponentSubstringPlayerName(GetTranslation('enter_cage'))
-                                EndTextCommandDisplayHelp(0, false, true, -1)
+                                AddTextEntry('D4RK_HELP', GetTranslation('enter_cage'))
+                                DisplayHelpTextThisFrame('D4RK_HELP', false)
 
                                 if IsControlJustPressed(0, Config.Keys.EnterCage) then
                                     EnterCage(vehicle, vehicleName)
@@ -220,9 +219,8 @@ Citizen.CreateThread(function()
         -- Exit cage check
         if IsEntityAttached(playerPed) then
             sleep = 0
-            BeginTextCommandDisplayHelp('STRING')
-            AddTextComponentSubstringPlayerName(GetTranslation('exit_cage'))
-            EndTextCommandDisplayHelp(0, false, true, -1)
+            AddTextEntry('D4RK_HELP', GetTranslation('exit_cage'))
+            DisplayHelpTextThisFrame('D4RK_HELP', false)
 
             if IsControlJustPressed(0, Config.Keys.ExitCage) then
                 if currentVehicle then

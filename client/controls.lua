@@ -314,9 +314,8 @@ CreateThread(function()
 
         -- Show prompt
         if nearbyVehicle and not controlActive and not menuOpen then
-            BeginTextCommandDisplayHelp('STRING')
-            AddTextComponentSubstringPlayerName(GetTranslation('open_menu'))
-            EndTextCommandDisplayHelp(0, false, true, -1)
+            AddTextEntry('D4RK_PROMPT', GetTranslation('open_menu'))
+            DisplayHelpTextThisFrame('D4RK_PROMPT', false)
 
             if IsControlJustPressed(0, Config.Keys.OpenMenu) then
                 if not menuOpen then
