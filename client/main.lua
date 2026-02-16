@@ -337,7 +337,6 @@ function InitializeVehicleState(vehicle, vehicleName)
 
     if not vehicleStates[netId] then
         local config = GetVehicleConfig(vehicleName)
-
         vehicleStates[netId] = {
             vehicle = vehicle,
             vehicleName = vehicleName,
@@ -347,15 +346,25 @@ function InitializeVehicleState(vehicle, vehicleName)
             waterActive = false,
             cageOccupants = {}
         }
-
-        -- Initialize control values
         for i, bone in ipairs(config.bones) do
             vehicleStates[netId].controlValues[i] = bone.default or bone.min or 0.0
         end
     end
 
-    -- Props spawnen!
+    -- Props spawnen
     SpawnBoneProps(vehicle, vehicleName)
+
+    -- NEU: Collision Objects spawnen
+    SpawnCollisionObjects(vehicle, vehicleName)
+
+    -- NEU: Stützen-Props spawnen
+    SpawnStabilizerProps(vehicle, vehicleName)
+
+    -- NEU: Cage-Prop spawnen
+    SpawnCageProp(vehicle, vehicleName)
+
+    -- NEU: Water-Prop spawnen
+    SpawnWaterProp(vehicle, vehicleName)
 
     return vehicleStates[netId]
 end
@@ -411,51 +420,48 @@ function ToggleStabilizers(vehicle)
     local stabConfig = state.config.stabilizers
     if not stabConfig or not stabConfig.enabled then return end
 
+    -- Nicht während Animation
+    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    if stabAnimating and stabAnimating[netId] then
+        ShowNotification('Stützen fahren gerade...', 'warning')
+        return
+    end
+
     local deploy = not state.stabilizersDeployed
     state.stabilizersDeployed = deploy
 
-    -- Animate stabilizers
-    AnimateStabilizers(vehicle, stabConfig, deploy)
+    -- Fahrzeug einfrieren/freigeben
+    FreezeEntityPosition(vehicle, deploy)
+    if deploy then
+        SetVehicleEngineOn(vehicle, false, true, true)
+        SetVehicleHandbrake(vehicle, true)
+    else
+        SetVehicleHandbrake(vehicle, false)
+    end
 
-    -- Sync to server
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    -- Props animieren
+    AnimateStabilizersProps(vehicle, state.vehicleName, deploy)
+
+    -- Sync
     TriggerServerEvent('D4rk_Smart:SyncStabilizers', netId, deploy)
 
-    -- Update NUI
     SendNUIMessage({
         action = 'updateStabilizers',
         deployed = deploy
     })
 
-    local msg = deploy and 'Stützen ausgefahren' or 'Stützen eingefahren'
+    local msg = deploy and 'Stützen ausgefahren - Fahrzeug gesichert' or 'Stützen eingefahren - Fahrzeug fahrbereit'
     ShowNotification(msg, 'info')
 end
 
+-- AnimateStabilizers wird jetzt von stabilizers.lua übernommen
+-- Die alte Funktion aus main.lua kann gelöscht werden!
 function AnimateStabilizers(vehicle, stabConfig, deploy)
-    if not stabConfig.bones then return end
-
-    Citizen.CreateThread(function()
-        local duration = 2000
-        local startTime = GetGameTimer()
-
-        for _, stab in ipairs(stabConfig.bones) do
-            local boneIndex = GetEntityBoneIndexByName(vehicle, stab.name)
-            if boneIndex ~= -1 and stab.offset then
-                local targetExtension = deploy and stabConfig.maxExtension or 0.0
-
-                -- Einfache Animation: Prop am Stützen-Bone bewegen
-                -- (Stützen nutzen aktuell noch den alten Ansatz - TODO: auch auf Props umstellen)
-                if Config.Debug then
-                    print(string.format('[D4rk_Smart] Stabilizer %s: deploy=%s', stab.name, tostring(deploy)))
-                end
-            end
-        end
-
-        -- Sound
-        if stabConfig.soundEffect then
-            PlaySoundEffect(stabConfig.soundEffect)
-        end
-    end)
+    -- Wird jetzt von AnimateStabilizersProps in stabilizers.lua gemacht
+    local vehicleName = IsVehicleConfigured(vehicle)
+    if vehicleName then
+        AnimateStabilizersProps(vehicle, vehicleName, deploy)
+    end
 end
 
 function CanUseControls(vehicle)
@@ -674,6 +680,16 @@ AddEventHandler('D4rk_Smart:SyncStabilizersClient', function(netId, deployed)
     if not state then return end
 
     state.stabilizersDeployed = deployed
+
+    -- NEU: Auch bei anderen Spielern einfrieren
+    FreezeEntityPosition(vehicle, deployed)
+    if deployed then
+        SetVehicleEngineOn(vehicle, false, true, true)
+        SetVehicleHandbrake(vehicle, true)
+    else
+        SetVehicleHandbrake(vehicle, false)
+    end
+
     AnimateStabilizers(vehicle, state.config.stabilizers, deployed)
 
     if vehicle == currentVehicle then

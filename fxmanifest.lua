@@ -20,7 +20,8 @@ client_scripts {
     'client/props.lua',
     'client/spotlight.lua',
     'client/spinning.lua',
-    'client/doors.lua'
+    'client/doors.lua',
+    'client/stabilizers.lua',
 }
 
 server_scripts {

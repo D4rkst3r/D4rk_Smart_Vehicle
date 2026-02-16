@@ -1,258 +1,138 @@
--- D4rk Smart Vehicle - Collision Objects System
--- Allows players to walk on ladders and other vehicle parts
-
-local spawnedObjects = {}
+-- D4rk Smart Vehicle - Collision Objects (PROP-BASED)
+-- Begehbare Objekte die an der Prop-Kette hängen
+local collisionProps = {} -- per vehicle netId
 
 -- ============================================
 -- SPAWN COLLISION OBJECTS
 -- ============================================
-function SpawnCollisionObjects(vehicle, collisionConfig)
-    if not collisionConfig or not collisionConfig.enabled then return end
-    if not collisionConfig.objects then return end
-
+function SpawnCollisionObjects(vehicle, vehicleName)
     local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    if collisionProps[netId] then return end
 
-    if not spawnedObjects[netId] then
-        spawnedObjects[netId] = {}
-    end
+    local config = GetVehicleConfig(vehicleName)
+    if not config or not config.collision or not config.collision.enabled then return end
 
-    for i, objConfig in ipairs(collisionConfig.objects) do
-        -- Request model
-        local modelHash = GetHashKey(objConfig.model)
-        RequestModel(modelHash)
+    collisionProps[netId] = {}
+    local vehicleCoords = GetEntityCoords(vehicle)
 
-        local timeout = 0
-        while not HasModelLoaded(modelHash) and timeout < 100 do
-            Wait(10)
-            timeout = timeout + 1
-        end
+    for i, obj in ipairs(config.collision.objects) do
+        if obj.model and obj.model ~= '' then
+            local modelHash = GetHashKey(obj.model)
 
-        if not HasModelLoaded(modelHash) then
-            if Config.Debug then
-                print('^3[Collision] Failed to load model: ' .. objConfig.model .. '^7')
-            end
-            goto continue
-        end
+            if RequestModelSync(modelHash) then
+                local prop = CreateObject(modelHash, vehicleCoords.x, vehicleCoords.y, vehicleCoords.z + 15.0, true, true,
+                    false)
 
-        -- Get bone position
-        local boneIndex = GetBoneIndex(vehicle, objConfig.bone)
-        if boneIndex == -1 then
-            if Config.Debug then
-                print('^3[Collision] Bone not found: ' .. objConfig.bone .. '^7')
-            end
-            goto continue
-        end
+                if DoesEntityExist(prop) then
+                    -- WICHTIG: Collision AN für begehbare Objekte!
+                    SetEntityCollision(prop, true, true)
+                    SetEntityInvincible(prop, true)
 
-        local boneCoords = GetWorldPositionOfEntityBone(vehicle, boneIndex)
-        local offset = objConfig.offset or vector3(0.0, 0.0, 0.0)
+                    -- Sichtbarkeit
+                    if obj.invisible then
+                        SetEntityAlpha(prop, 0, false)
+                        SetEntityVisible(prop, false, false)
+                    end
 
-        -- Spawn object
-        local object = CreateObject(
-            modelHash,
-            boneCoords.x + offset.x,
-            boneCoords.y + offset.y,
-            boneCoords.z + offset.z,
-            false, -- networkObject
-            true,  -- netMissionEntity
-            true   -- doorFlag
-        )
+                    -- Attach target bestimmen
+                    local targetEntity, targetBoneIdx = GetCollisionAttachTarget(vehicle, netId, obj)
 
-        if not DoesEntityExist(object) then
-            if Config.Debug then
-                print('^3[Collision] Failed to create object^7')
-            end
-            goto continue
-        end
+                    local offset = obj.offset or vector3(0.0, 0.0, 0.0)
+                    local rotation = obj.rotation or vector3(0.0, 0.0, 0.0)
 
-        -- Set properties
-        SetEntityCollision(object, true, true)
-        FreezeEntityPosition(object, true)
-        SetEntityVisible(object, true, false)
-        SetEntityAlpha(object, 255, false)
+                    AttachEntityToEntity(
+                        prop, targetEntity, targetBoneIdx,
+                        offset.x, offset.y, offset.z,
+                        rotation.x, rotation.y, rotation.z,
+                        false, true, true, -- collision = true!
+                        false, 2, true
+                    )
 
-        -- Attach to vehicle if dynamic
-        if objConfig.dynamic then
-            local rotation = objConfig.rotation or vector3(0.0, 0.0, 0.0)
+                    collisionProps[netId][i] = {
+                        entity = prop,
+                        config = obj
+                    }
 
-            AttachEntityToEntity(
-                object,
-                vehicle,
-                boneIndex,
-                offset.x, offset.y, offset.z,
-                rotation.x, rotation.y, rotation.z,
-                false, false, true, false, 2, true
-            )
-        end
-
-        -- Store reference
-        table.insert(spawnedObjects[netId], {
-            object = object,
-            model = modelHash,
-            config = objConfig
-        })
-
-        SetModelAsNoLongerNeeded(modelHash)
-
-        ::continue::
-    end
-
-    if Config.Debug then
-        print('^2[Collision] Spawned ' .. #spawnedObjects[netId] .. ' collision objects for vehicle ' .. netId .. '^7')
-    end
-end
-
--- ============================================
--- REMOVE COLLISION OBJECTS
--- ============================================
-function RemoveCollisionObjects(vehicle)
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
-
-    if spawnedObjects[netId] then
-        for _, objData in ipairs(spawnedObjects[netId]) do
-            if DoesEntityExist(objData.object) then
-                DeleteEntity(objData.object)
-            end
-        end
-
-        spawnedObjects[netId] = nil
-
-        if Config.Debug then
-            print('^3[Collision] Removed collision objects for vehicle ' .. netId .. '^7')
-        end
-    end
-end
-
--- ============================================
--- UPDATE COLLISION OBJECTS
--- ============================================
-function UpdateCollisionObjects(vehicle)
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
-
-    if not spawnedObjects[netId] then return end
-
-    for _, objData in ipairs(spawnedObjects[netId]) do
-        if DoesEntityExist(objData.object) and not objData.config.dynamic then
-            -- Update position for non-dynamic objects if needed
-            local boneIndex = GetBoneIndex(vehicle, objData.config.bone)
-            if boneIndex ~= -1 then
-                local boneCoords = GetWorldPositionOfEntityBone(vehicle, boneIndex)
-                local offset = objData.config.offset or vector3(0.0, 0.0, 0.0)
-
-                SetEntityCoords(
-                    objData.object,
-                    boneCoords.x + offset.x,
-                    boneCoords.y + offset.y,
-                    boneCoords.z + offset.z,
-                    false, false, false, false
-                )
-            end
-        end
-    end
-end
-
--- ============================================
--- VEHICLE DETECTION THREAD
--- ============================================
-CreateThread(function()
-    while true do
-        Wait(1000) -- Check every second
-
-        local vehicles = GetGamePool('CVehicle')
-
-        for _, vehicle in ipairs(vehicles) do
-            local vehicleName = IsVehicleConfigured(vehicle)
-
-            if vehicleName then
-                local config = GetVehicleConfig(vehicleName)
-                local netId = NetworkGetNetworkIdFromEntity(vehicle)
-
-                -- Spawn collision objects if configured and not already spawned
-                if config.collision and config.collision.enabled then
-                    if not spawnedObjects[netId] then
-                        SpawnCollisionObjects(vehicle, config.collision)
+                    if Config.Debug then
+                        print(string.format('[D4rk_Smart] Collision obj #%d spawned: %s (collision=%s)',
+                            i, obj.model, tostring(not obj.invisible)))
                     end
                 end
+
+                SetModelAsNoLongerNeeded(modelHash)
             end
         end
+    end
+end
 
-        -- Cleanup deleted vehicles - direkt mit netId arbeiten
+function GetCollisionAttachTarget(vehicle, netId, objConfig)
+    local attachTo = objConfig.attachTo or 'vehicle'
+
+    if attachTo == 'vehicle' then
+        local boneIdx = 0
+        if objConfig.attachBone and objConfig.attachBone ~= '' then
+            local idx = GetEntityBoneIndexByName(vehicle, objConfig.attachBone)
+            if idx ~= -1 then boneIdx = idx end
+        end
+        return vehicle, boneIdx
+    else
+        -- An Bone-Prop hängen
+        local parentIndex = tonumber(attachTo)
+        if parentIndex and spawnedBoneProps[netId] and spawnedBoneProps[netId][parentIndex] then
+            local parentProp = spawnedBoneProps[netId][parentIndex]
+            if parentProp and parentProp.entity and DoesEntityExist(parentProp.entity) then
+                return parentProp.entity, 0
+            end
+        end
+        return vehicle, 0
+    end
+end
+
+function DeleteCollisionObjects(netId)
+    if not collisionProps[netId] then return end
+    for i, propData in pairs(collisionProps[netId]) do
+        if propData and propData.entity and DoesEntityExist(propData.entity) then
+            DetachEntity(propData.entity, false, false)
+            DeleteEntity(propData.entity)
+        end
+    end
+    collisionProps[netId] = nil
+end
+
+-- ============================================
+-- SPAWN WHEN VEHICLE INITIALIZED
+-- ============================================
+-- Wird aufgerufen wenn InitializeVehicleState Props spawnt
+RegisterNetEvent('D4rk_Smart:VehicleInitialized')
+AddEventHandler('D4rk_Smart:VehicleInitialized', function(vehicle, vehicleName)
+    SpawnCollisionObjects(vehicle, vehicleName)
+end)
+
+-- ============================================
+-- CLEANUP THREAD
+-- ============================================
+Citizen.CreateThread(function()
+    while true do
+        Wait(5000)
         local toRemove = {}
-        for netId, objList in pairs(spawnedObjects) do
-            local vehicle = NetworkGetEntityFromNetworkId(netId)
-            if not DoesEntityExist(vehicle) then
+        for netId, _ in pairs(collisionProps) do
+            local veh = NetworkGetEntityFromNetworkId(netId)
+            if not DoesEntityExist(veh) then
                 table.insert(toRemove, netId)
             end
         end
-
         for _, netId in ipairs(toRemove) do
-            if spawnedObjects[netId] then
-                for _, objData in ipairs(spawnedObjects[netId]) do
-                    if DoesEntityExist(objData.object) then
-                        DeleteEntity(objData.object)
-                    end
-                end
-                spawnedObjects[netId] = nil
-
-                if Config.Debug then
-                    print('^3[Collision] Cleaned up objects for deleted vehicle ' .. netId .. '^7')
-                end
-            end
+            DeleteCollisionObjects(netId)
         end
     end
 end)
 
 -- ============================================
--- UPDATE THREAD
--- ============================================
-CreateThread(function()
-    while true do
-        Wait(100) -- Update every 100ms
-
-        for netId, _ in pairs(spawnedObjects) do
-            local vehicle = NetworkGetEntityFromNetworkId(netId)
-            if DoesEntityExist(vehicle) then
-                UpdateCollisionObjects(vehicle)
-            end
-        end
-    end
-end)
-
--- ============================================
--- CLEANUP
+-- CLEANUP ON STOP
 -- ============================================
 AddEventHandler('onResourceStop', function(resourceName)
     if GetCurrentResourceName() ~= resourceName then return end
-
-    -- Remove all spawned objects
-    for netId, objList in pairs(spawnedObjects) do
-        for _, objData in ipairs(objList) do
-            if DoesEntityExist(objData.object) then
-                DeleteEntity(objData.object)
-            end
-        end
+    for netId, _ in pairs(collisionProps) do
+        DeleteCollisionObjects(netId)
     end
-
-    spawnedObjects = {}
-end)
-
--- ============================================
--- EXPORTS
--- ============================================
-exports('GetCollisionObjects', function(vehicle)
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
-    return spawnedObjects[netId] or {}
-end)
-
-exports('ForceSpawnCollision', function(vehicle)
-    local vehicleName = IsVehicleConfigured(vehicle)
-    if vehicleName then
-        local config = GetVehicleConfig(vehicleName)
-        if config.collision then
-            SpawnCollisionObjects(vehicle, config.collision)
-        end
-    end
-end)
-
-exports('ForceRemoveCollision', function(vehicle)
-    RemoveCollisionObjects(vehicle)
 end)

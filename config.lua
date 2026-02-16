@@ -177,31 +177,33 @@ Config.Vehicles = {
         },
 
         -- Cage/Basket System
+        -- Cage (an Leiter-Spitze = Prop #3)
         cage = {
             enabled = true,
-            bone = 'misc_d', -- Attach bone
-            enterDistance = 3.0,
-            offset = vector3(0.0, 0.0, 0.5),
+            propModel = 'prop_roadcone02a', -- Test! Später echtes Korb-Modell
+            attachTo = '3',                 -- An Prop #3 (Leiter Ausfahren)
+            offset = vector3(0.0, 0.5, 0.0),
             rotation = vector3(0.0, 0.0, 0.0),
-            canControl = true, -- Kann aus Korb steuern
-            maxOccupants = 2
+            playerOffset = vector3(0.0, 0.0, 0.3), -- Wo der Spieler im Korb steht
+            enterDistance = 3.0,
+            canControl = true,
+            maxOccupants = 2,
+            enableCollision = true, -- Spieler soll draufstehen können!
         },
 
-        -- Water Monitor (Wasserwerfer)
+        -- Water Monitor (am Korb = Cage-Prop oder auch an Prop #3)
         waterMonitor = {
             enabled = true,
-            bone = 'basket_rotate',
+            propModel = 'prop_roadcone02a', -- Test! Später echtes Düsen-Modell
+            attachTo = '3',                 -- An Leiter-Spitze
             offset = vector3(0.0, 1.0, 0.3),
             rotation = vector3(0.0, 0.0, 0.0),
             particleEffect = 'core',
             particleName = 'water_cannon_jet',
             range = 30.0,
             pressure = 1.5,
-            canRotate = true,
-            rotationSpeed = 0.3,
             soundEffect = 'water_cannon'
         },
-
         -- Spotlights (NEW!)
         spotlight = {
             enabled = true,
@@ -243,27 +245,55 @@ Config.Vehicles = {
             }
         },
 
-        -- Collision Objects (Begehbare Leiter)
+        -- Stabilizers
+        stabilizers = {
+            enabled = true,
+            required = false,
+            propModel = 'prop_roadcone02a', -- NEU: Test-Prop für jede Stütze
+            maxExtension = 1.5,
+            animDuration = 2000,            -- NEU: ms für Animation
+            soundEffect = 'stabilizer',
+            bones = {
+                {
+                    side = 'front_left',
+                    offset = vector3(-1.5, 2.0, -0.3), -- X/Y = Position, Z = Start
+                    rotation = vector3(0.0, 0.0, 0.0),
+                    attachBone = 'bodyshell',          -- NEU: Vehicle-Bone
+                },
+                {
+                    side = 'front_right',
+                    offset = vector3(1.5, 2.0, -0.3),
+                    rotation = vector3(0.0, 0.0, 0.0),
+                    attachBone = 'bodyshell',
+                },
+                {
+                    side = 'rear_left',
+                    offset = vector3(-1.5, -2.0, -0.3),
+                    rotation = vector3(0.0, 0.0, 0.0),
+                    attachBone = 'bodyshell',
+                },
+                {
+                    side = 'rear_right',
+                    offset = vector3(1.5, -2.0, -0.3),
+                    rotation = vector3(0.0, 0.0, 0.0),
+                    attachBone = 'bodyshell',
+                },
+            },
+        },
+
+        -- Collision (begehbare Leiter an Prop #3)
         collision = {
             enabled = true,
             objects = {
                 {
-                    model = 'prop_ladder_01',
-                    bone = 'misc_c',
-                    offset = vector3(0.0, 0.0, 0.0),
+                    model = 'prop_ladder_01', -- Begehbare Leiter
+                    attachTo = '2',           -- NEU: An Prop #2 (Leiter Anheben)
+                    offset = vector3(0.0, 0.0, -0.3),
                     rotation = vector3(0.0, 0.0, 0.0),
-                    dynamic = true -- Bewegt sich mit Bone
-                }
+                    invisible = false, -- NEU: Sichtbar oder unsichtbar?
+                },
             }
         },
-
-        -- UI Settings
-        ui = {
-            showSpeed = true,
-            showAngle = true,
-            showStability = true,
-            theme = 'fire' -- fire, police, utility
-        }
     },
 
     -- ==========================================

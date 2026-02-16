@@ -75,13 +75,24 @@ function ControlThread()
         -- ============================================
         -- NUI PANEL AKTIV (Sicherheits-Block)
         -- ============================================
+        -- NEU: Radio & andere störende Controls IMMER blockieren
+        DisableControlAction(0, 85, true)  -- Q (Radio Wheel)
+        DisableControlAction(0, 48, true)  -- Z (Radio vorher)
+        DisableControlAction(0, 172, true) -- Pfeil Hoch (Handy)
+        DisableControlAction(0, 173, true) -- Pfeil Runter (Handy)
+        DisableControlAction(0, 108, true) -- Numpad 4
+        DisableControlAction(0, 109, true) -- Numpad 6
+
+
         if menuOpen then
             DisableControlAction(0, 1, true)
             DisableControlAction(0, 2, true)
             DisableControlAction(0, 24, true)
             DisableControlAction(0, 25, true)
+            DisableControlAction(0, 74, true)
             DisableControlAction(0, 75, true)
             DisableControlAction(0, 106, true)
+            DisableControlAction(0, 200, true) -- ESC
         end
 
         -- Distance check
