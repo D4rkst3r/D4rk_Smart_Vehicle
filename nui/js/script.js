@@ -373,27 +373,20 @@ function resetAll() {
 }
 
 // ============================================
-// KEYBOARD HANDLERS
+// KEYBOARD HANDLERS (FIX #8: ESC funktioniert wieder)
 // ============================================
-// ESC Handler DEAKTIVIERT wegen FiveM Auto-Fire Bug
-// Nutze X Button zum Schließen!
+document.addEventListener("keydown", function (e) {
+  if (e.key === "Escape" || e.keyCode === 27) {
+    const panel = document.getElementById("controlPanel");
 
-/*
-document.addEventListener('keydown', function(e) {
-    // DEAKTIVIERT - zu viele false positives
-    if (e.key === 'Escape' || e.keyCode === 27) {
-        const panel = document.getElementById('controlPanel');
-        
-        if (escHandlerEnabled && panel && panel.style.display === 'block') {
-            console.log('ESC pressed in NUI - closing panel');
-            e.preventDefault();
-            closePanel();
-        } else if (!escHandlerEnabled) {
-            console.log('ESC pressed but handler not enabled yet (prevented auto-fire)');
-        }
+    if (escHandlerEnabled && panel && panel.style.display === "block") {
+      console.log("ESC pressed in NUI - closing panel");
+      e.preventDefault();
+      e.stopPropagation();
+      closePanel();
     }
+  }
 });
-*/
 
 // Prevent right click
 document.addEventListener("contextmenu", (event) => event.preventDefault());

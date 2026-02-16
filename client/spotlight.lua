@@ -147,9 +147,9 @@ end
 -- ============================================
 CreateThread(function()
     while true do
-        Wait(0)
-
         if currentVehicle and controlActive then
+            Wait(0)
+
             local config = GetVehicleConfig(currentVehicleName)
 
             if config and config.spotlight and config.spotlight.enabled then
@@ -159,6 +159,8 @@ CreateThread(function()
                     ToggleSpotlights(currentVehicle)
                 end
             end
+        else
+            Wait(500) -- Weniger CPU wenn nicht aktiv
         end
     end
 end)

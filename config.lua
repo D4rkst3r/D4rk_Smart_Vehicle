@@ -57,7 +57,7 @@ Config.Vehicles = {
         -- Bone Configuration
         bones = {
             {
-                name = 'misc_a',
+                name = 'turret_1base',
                 label = 'Turm Rotation',
                 type = 'rotation',
                 axis = 'z',
@@ -68,7 +68,7 @@ Config.Vehicles = {
                 controlGroup = 'turret'
             },
             {
-                name = 'misc_b',
+                name = 'turret_1base',
                 label = 'Leiter Anheben',
                 type = 'rotation',
                 axis = 'x',

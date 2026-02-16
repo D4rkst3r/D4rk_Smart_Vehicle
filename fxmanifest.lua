@@ -35,5 +35,6 @@ files {
     'nui/html/index.html',
     'nui/css/style.css',
     'nui/js/script.js',
+    'nui/js/jquery.min.js',
     'nui/img/*.png'
 }

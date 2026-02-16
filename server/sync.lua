@@ -8,24 +8,24 @@ local playerSyncCount = {}
 -- ============================================
 function CheckRateLimit(source)
     local currentTime = GetGameTimer()
-    
+
     if not playerSyncCount[source] then
         playerSyncCount[source] = {
             count = 0,
             windowStart = currentTime
         }
     end
-    
+
     local data = playerSyncCount[source]
-    
+
     -- Reset window if expired (1 second)
     if (currentTime - data.windowStart) >= 1000 then
         data.count = 0
         data.windowStart = currentTime
     end
-    
+
     data.count = data.count + 1
-    
+
     -- Max 50 syncs per second
     if data.count > 50 then
         if Config.Debug then
@@ -33,7 +33,7 @@ function CheckRateLimit(source)
         end
         return false
     end
-    
+
     return true
 end
 
@@ -44,7 +44,7 @@ function QueueSync(netId, syncType, data)
     if not syncQueue[netId] then
         syncQueue[netId] = {}
     end
-    
+
     syncQueue[netId][syncType] = {
         data = data,
         timestamp = GetGameTimer()
@@ -55,12 +55,12 @@ function ProcessSyncQueue()
     for netId, syncs in pairs(syncQueue) do
         for syncType, syncData in pairs(syncs) do
             local currentTime = GetGameTimer()
-            
+
             -- Only send if at least 50ms have passed since last sync
             if not lastSyncTime[netId] or (currentTime - lastSyncTime[netId]) >= Config.UpdateRate then
-                
                 if syncType == 'control' then
-                    TriggerClientEvent('D4rk_Smart:SyncControlClient', -1, netId, syncData.data.boneIndex, syncData.data.value)
+                    TriggerClientEvent('D4rk_Smart:SyncControlClient', -1, netId, syncData.data.boneIndex,
+                        syncData.data.value)
                 elseif syncType == 'stabilizers' then
                     TriggerClientEvent('D4rk_Smart:SyncStabilizersClient', -1, netId, syncData.data.deployed)
                 elseif syncType == 'water' then
@@ -68,7 +68,7 @@ function ProcessSyncQueue()
                 elseif syncType == 'cage' then
                     TriggerClientEvent('D4rk_Smart:SyncCageClient', -1, netId, syncData.data.occupants)
                 end
-                
+
                 lastSyncTime[netId] = currentTime
                 syncQueue[netId][syncType] = nil
             end
@@ -94,15 +94,15 @@ local saveInterval = 300000 -- 5 minutes
 function SaveVehicleStates()
     if Config.Debug then
         print('^2[D4rk_Smart] Saving vehicle states...^7')
-        
+
         local count = 0
         for _ in pairs(vehicleStates) do
             count = count + 1
         end
-        
+
         print(string.format('^2[D4rk_Smart] Saved %d vehicle states^7', count))
     end
-    
+
     -- TODO: Implement actual saving to database/file
     -- This is just a placeholder for the persistence system
 end
@@ -111,7 +111,7 @@ function LoadVehicleStates()
     if Config.Debug then
         print('^2[D4rk_Smart] Loading vehicle states...^7')
     end
-    
+
     -- TODO: Implement actual loading from database/file
 end
 
@@ -156,22 +156,23 @@ function MonitorSuspiciousActivity(source, reason)
             reasons = {}
         }
     end
-    
+
     local data = suspiciousActivity[source]
     data.count = data.count + 1
-    
+
     if not data.reasons[reason] then
         data.reasons[reason] = 0
     end
     data.reasons[reason] = data.reasons[reason] + 1
-    
+
     local currentTime = GetGameTimer()
-    
+
     -- Warn every 30 seconds
     if (currentTime - data.lastWarning) >= 30000 then
-        print(string.format('^3[D4rk_Smart] Suspicious activity from player %d: %s (Total: %d)^7', source, reason, data.count))
+        print(string.format('^3[D4rk_Smart] Suspicious activity from player %d: %s (Total: %d)^7', source, reason,
+            data.count))
         data.lastWarning = currentTime
-        
+
         -- Could trigger additional anti-cheat measures here
         -- Example: Kick player after X violations
         if data.count > 100 then
@@ -185,16 +186,23 @@ end
 RegisterNetEvent('D4rk_Smart:SyncControl')
 AddEventHandler('D4rk_Smart:SyncControl', function(netId, boneIndex, value)
     local source = source
-    
+
     if not CheckRateLimit(source) then
         MonitorSuspiciousActivity(source, 'Rate limit exceeded')
         return
     end
-    
+
     if GetVehicleController(netId) ~= source then
         MonitorSuspiciousActivity(source, 'Unauthorized control attempt')
         return
     end
+
+    -- Update state (übernommen aus main.lua)
+    local state = InitializeVehicleState(netId)
+    state.controls[boneIndex] = value
+
+    -- Sync to all clients
+    TriggerClientEvent('D4rk_Smart:SyncControlClient', -1, netId, boneIndex, value)
 end)
 
 -- ============================================
@@ -219,14 +227,14 @@ end
 
 RegisterNetEvent('D4rk_Smart:StartControl')
 AddEventHandler('D4rk_Smart:StartControl', function(netId)
-    UpdateStatistics('control_start', {netId = netId, source = source})
+    UpdateStatistics('control_start', { netId = netId, source = source })
 end)
 
 -- Stats command
 if Config.Debug then
     RegisterCommand('smartvehicle:stats', function(source, args)
         print('^2[D4rk_Smart] Statistics:^7')
-        print(json.encode(statistics, {indent = true}))
+        print(json.encode(statistics, { indent = true }))
     end, true)
 end
 
@@ -237,19 +245,19 @@ end
 local function GetPlayersInRange(coords, range)
     local players = {}
     local allPlayers = GetPlayers()
-    
+
     for _, player in ipairs(allPlayers) do
         local ped = GetPlayerPed(player)
         if ped and DoesEntityExist(ped) then
             local playerCoords = GetEntityCoords(ped)
             local distance = #(coords - playerCoords)
-            
+
             if distance <= range then
                 table.insert(players, player)
             end
         end
     end
-    
+
     return players
 end
 

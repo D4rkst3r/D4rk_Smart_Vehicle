@@ -1,9 +1,9 @@
 -- D4rk Smart Vehicle - Advanced Controls
-local controlActive = false
-local remoteActive = false
+-- FIX #1: Keine lokalen Variablen mehr - nutze globale aus main.lua
+-- controlActive, remoteActive, menuOpen sind global in main.lua definiert
 
 -- ============================================
--- START CONTROL
+-- START CONTROL (FIX #3: wird jetzt von Proximity genutzt)
 -- ============================================
 function StartControl(vehicle, vehicleName, mode)
     if controlActive then
@@ -69,35 +69,28 @@ end
 function ControlThread()
     local playerPed = PlayerPedId()
 
-    while controlActive and DoesEntityExist(currentVehicle) do
+    while controlActive and currentVehicle and DoesEntityExist(currentVehicle) do
         Wait(0)
 
         -- ============================================
         -- NUI PANEL AKTIV (Sicherheits-Block)
         -- ============================================
         if menuOpen then
-            -- Verhindere Aktionen im Hintergrund, während das Menü offen ist
-            DisableControlAction(0, 1, true)   -- Look Left/Right (Maus wird für NUI gebraucht)
-            DisableControlAction(0, 2, true)   -- Look Up/Down
-            DisableControlAction(0, 24, true)  -- Attack (Linksklick - Verhindert Schlagen/Schiessen)
-            DisableControlAction(0, 25, true)  -- Aim (Rechtsklick)
-            DisableControlAction(0, 75, true)  -- Exit Vehicle (F - Verhindert Aussteigen)
-            DisableControlAction(0, 106, true) -- Vehicle Mouse Control Override
-
-            -- Optional: Wenn man sich im Menü gar nicht bewegen soll
-            -- DisableControlAction(0, 30, true) -- Move LR
-            -- DisableControlAction(0, 31, true) -- Move UD
+            DisableControlAction(0, 1, true)
+            DisableControlAction(0, 2, true)
+            DisableControlAction(0, 24, true)
+            DisableControlAction(0, 25, true)
+            DisableControlAction(0, 75, true)
+            DisableControlAction(0, 106, true)
         end
 
-        -- Distance check (erweitert: Schließe Panel wenn zu weit weg)
+        -- Distance check
         if controlMode ~= 'inside' and controlMode ~= 'cage' then
             local distance = GetDistanceToVehicle(currentVehicle)
             local maxDistance = controlMode == 'remote' and Config.MaxRemoteDistance or Config.MaxStandingDistance
 
             if distance > maxDistance then
-                -- Falls Panel offen, schließe es sauber
                 if menuOpen then CloseControlPanel() end
-
                 StopControl()
                 ShowNotification(GetTranslation('too_far'), 'warning')
                 break
@@ -105,12 +98,11 @@ function ControlThread()
         end
 
         -- Animationen nur spielen, wenn das Panel NICHT offen ist
-        -- (Verhindert Animations-Glitch wenn NUI Fokus hat)
         if not menuOpen then
             if controlMode == 'standing' then
-                -- ... dein Anim Code ...
+                -- Animation Code
             elseif controlMode == 'remote' then
-                -- ... dein Anim Code ...
+                -- Animation Code
                 DisableControlAction(0, 30, true)
                 DisableControlAction(0, 31, true)
             end
@@ -127,6 +119,8 @@ function ControlThread()
         end
     end
 
+    -- Sicherheits-Cleanup: Nur stoppen wenn noch aktiv
+    -- (Verhindert doppeltes StopControl)
     if controlActive then
         StopControl()
     end
@@ -143,7 +137,6 @@ function HandleControls()
         for i, bone in ipairs(currentConfig.bones) do
             local delta = 0.0
 
-            -- Nutze IsDisabledControlPressed statt IsControlPressed
             if bone.controlGroup == 'turret' or i == 1 then
                 if IsDisabledControlPressed(0, Config.Keys.RotateLeft) then
                     delta = -1.0
@@ -160,7 +153,6 @@ function HandleControls()
                 end
             end
 
-            -- Bone 3 & 4 (mit Disabled-Check)
             if i == 3 then
                 if IsDisabledControlPressed(0, 85) then     -- Q
                     delta = 1.0
@@ -170,27 +162,24 @@ function HandleControls()
             end
 
             if i == 4 then
-                -- Hier auch die Kombinationen prüfen
-                if IsDisabledControlPressed(0, 21) and IsDisabledControlPressed(0, 85) then     -- Shift + Q
+                if IsDisabledControlPressed(0, 21) and IsDisabledControlPressed(0, 85) then
                     delta = 1.0
-                elseif IsDisabledControlPressed(0, 21) and IsDisabledControlPressed(0, 48) then -- Shift + Z
+                elseif IsDisabledControlPressed(0, 21) and IsDisabledControlPressed(0, 48) then
                     delta = -1.0
                 end
             end
 
-            -- Apply control
             if delta ~= 0.0 then
                 UpdateControl(currentVehicle, i, delta)
             end
         end
     end
 
-    -- Handle PROP controls (Optimiert!)
+    -- Handle PROP controls
     if currentConfig.props then
         for _, propConfig in ipairs(currentConfig.props) do
             if propConfig.controls then
                 for _, control in ipairs(propConfig.controls) do
-                    -- Nutze IsDisabledControlPressed
                     if IsDisabledControlPressed(0, control.control) then
                         if control.movementType == "move" or control.movementType == "rotate" then
                             UpdatePropControl(currentVehicle, propConfig.id, control.movementType, control.axis,
@@ -198,7 +187,6 @@ function HandleControls()
                         end
                     end
 
-                    -- Nutze IsDisabledControlJustPressed
                     if IsDisabledControlJustPressed(0, control.control) then
                         if control.movementType == "toggle" then
                             ToggleProp(currentVehicle, propConfig.id)
@@ -211,7 +199,7 @@ function HandleControls()
         end
     end
 
-    -- Stabilizers toggle (Ebenfalls Disabled Version)
+    -- Stabilizers toggle
     if IsDisabledControlJustPressed(0, Config.Keys.StabilizersToggle) then
         if currentConfig.stabilizers and currentConfig.stabilizers.enabled then
             ToggleStabilizers(currentVehicle)
@@ -235,12 +223,20 @@ function ActivateRemote(vehicle, vehicleName)
     currentVehicleName = vehicleName
     currentConfig = GetVehicleConfig(vehicleName)
     controlMode = 'remote'
+    controlActive = true -- FIX: controlActive auch setzen!
 
     -- Initialize state
     InitializeVehicleState(vehicle, vehicleName)
 
+    -- Notify server
+    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    TriggerServerEvent('D4rk_Smart:StartControl', netId)
+
     -- Zeige NUR das Compact HUD (nicht das große Panel!)
     ShowCompactHud()
+
+    -- Start control thread für Tasteneingaben
+    CreateThread(ControlThread)
 
     ShowNotification(GetTranslation('remote_activated'), 'success')
 end
@@ -251,9 +247,19 @@ function DeactivateRemote()
     print('🔵 Deaktiviere Fernsteuerung')
 
     remoteActive = false
+    controlActive = false -- FIX: controlActive auch zurücksetzen!
 
-    -- Schließe Compact HUD (nicht das Panel!)
+    -- Notify server
+    if currentVehicle then
+        local netId = NetworkGetNetworkIdFromEntity(currentVehicle)
+        TriggerServerEvent('D4rk_Smart:StopControl', netId)
+    end
+
+    -- Schließe Compact HUD
     HideCompactHud()
+
+    -- Stop animations
+    ClearPedTasks(PlayerPedId())
 
     currentVehicle = nil
     currentVehicleName = nil
@@ -317,7 +323,7 @@ CreateThread(function()
             EndTextCommandDisplayHelp(0, false, true, -1)
 
             if IsControlJustPressed(0, Config.Keys.OpenMenu) then
-                if not menuOpen then -- Doppelte Prüfung!
+                if not menuOpen then
                     OpenControlPanel(nearbyVehicle, nearbyVehicleName)
                 end
             end
@@ -351,7 +357,14 @@ CreateThread(function()
             end
         end
 
-        if not nearbyVehicle then
+        -- FIX #16: Remote deaktivieren per F7 Toggle
+        if remoteActive then
+            if IsControlJustPressed(0, Config.Keys.OpenRemote) then
+                DeactivateRemote()
+            end
+        end
+
+        if not nearbyVehicle and not remoteActive then
             Wait(500)
         end
     end

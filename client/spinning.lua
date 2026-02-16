@@ -84,7 +84,7 @@ function SpinThread(vehicle, propId, spinConfig)
     if not propData or not DoesEntityExist(propData.entity) then return end
 
     -- Bone Index einmalig berechnen
-    local boneIndex = GetEntityBoneIndexByName(vehicle, propData.attachBone)
+    local boneIndex = propData.attachBone
     local axis = spinConfig.axis or 3
     local amount = spinConfig.movementAmount or 0.5
     local waitTime = spinConfig.movementSpeed or 100
