@@ -911,19 +911,3 @@ RegisterCommand('resetmenu', function()
     SetNuiFocus(false, false)
     print('✅ Menu reset')
 end, false)
-
-RegisterCommand('showbones', function()
-    local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
-    if vehicle ~= 0 then
-        print('=== VEHICLE BONES ===')
-        for i = 0, 200 do
-            local boneName = GetEntityBoneIndexByName(vehicle, tostring(i))
-            -- Alternative: direkt iterieren
-        end
-        -- Bessere Methode:
-        local boneCount = GetEntityBoneCount(vehicle)
-        print('Total bones: ' .. (boneCount or 'unknown'))
-    else
-        print('Not in a vehicle!')
-    end
-end, false)

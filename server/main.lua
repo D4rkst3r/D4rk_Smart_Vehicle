@@ -1,4 +1,5 @@
 -- D4rk Smart Vehicle - Server Main
+-- VERSION 2.2 - MULTIPLAYER FIXES
 vehicleControllers = {}
 vehicleStates = {}
 
@@ -32,19 +33,23 @@ end
 -- ============================================
 -- CONTROL EVENTS
 -- ============================================
+-- FIX #4: Spielername mitschicken wenn bereits gesteuert
 RegisterNetEvent('D4rk_Smart:StartControl')
 AddEventHandler('D4rk_Smart:StartControl', function(netId)
     local source = source
 
     if vehicleControllers[netId] and vehicleControllers[netId] ~= source then
-        TriggerClientEvent('D4rk_Smart:Notify', source, GetTranslation('already_controlled'), 'warning')
+        local controllerName = GetPlayerName(vehicleControllers[netId]) or 'Unbekannt'
+        TriggerClientEvent('D4rk_Smart:Notify', source,
+            'Fahrzeug wird von ' .. controllerName .. ' gesteuert', 'warning')
         return
     end
 
     SetVehicleController(netId, source)
 
     if Config.Debug then
-        print(string.format('^2[D4rk_Smart] Player %d started controlling vehicle %d^7', source, netId))
+        print(string.format('^2[D4rk_Smart] Player %d (%s) started controlling vehicle %d^7',
+            source, GetPlayerName(source) or '?', netId))
     end
 end)
 
@@ -61,21 +66,21 @@ AddEventHandler('D4rk_Smart:StopControl', function(netId)
     end
 end)
 
-
+-- ============================================
+-- SYNC EVENTS
+-- ============================================
 RegisterNetEvent('D4rk_Smart:SyncStabilizers')
 AddEventHandler('D4rk_Smart:SyncStabilizers', function(netId, deployed)
     local source = source
 
-    -- Update state
     local state = InitializeVehicleState(netId)
     state.stabilizersDeployed = deployed
 
-    -- Sync to all clients
     TriggerClientEvent('D4rk_Smart:SyncStabilizersClient', -1, netId, deployed)
 
     if Config.Debug then
-        print(string.format('^2[D4rk_Smart] Stabilizers %s for vehicle %d^7', deployed and 'deployed' or 'retracted',
-            netId))
+        print(string.format('^2[D4rk_Smart] Stabilizers %s for vehicle %d^7',
+            deployed and 'deployed' or 'retracted', netId))
     end
 end)
 
@@ -83,16 +88,14 @@ RegisterNetEvent('D4rk_Smart:SyncWater')
 AddEventHandler('D4rk_Smart:SyncWater', function(netId, active)
     local source = source
 
-    -- Update state
     local state = InitializeVehicleState(netId)
     state.waterActive = active
 
-    -- Sync to all clients
     TriggerClientEvent('D4rk_Smart:SyncWaterClient', -1, netId, active)
 
     if Config.Debug then
-        print(string.format('^2[D4rk_Smart] Water monitor %s for vehicle %d^7', active and 'activated' or 'deactivated',
-            netId))
+        print(string.format('^2[D4rk_Smart] Water monitor %s for vehicle %d^7',
+            active and 'activated' or 'deactivated', netId))
     end
 end)
 
@@ -103,14 +106,12 @@ RegisterNetEvent('D4rk_Smart:EnterCage')
 AddEventHandler('D4rk_Smart:EnterCage', function(netId)
     local source = source
 
-    -- Update state
     local state = InitializeVehicleState(netId)
 
     if not TableContains(state.cageOccupants, source) then
         table.insert(state.cageOccupants, source)
     end
 
-    -- Sync to all clients
     TriggerClientEvent('D4rk_Smart:SyncCageClient', -1, netId, #state.cageOccupants)
 
     if Config.Debug then
@@ -122,7 +123,6 @@ RegisterNetEvent('D4rk_Smart:ExitCage')
 AddEventHandler('D4rk_Smart:ExitCage', function(netId)
     local source = source
 
-    -- Update state
     local state = InitializeVehicleState(netId)
 
     for i, playerId in ipairs(state.cageOccupants) do
@@ -132,7 +132,6 @@ AddEventHandler('D4rk_Smart:ExitCage', function(netId)
         end
     end
 
-    -- Sync to all clients
     TriggerClientEvent('D4rk_Smart:SyncCageClient', -1, netId, #state.cageOccupants)
 
     if Config.Debug then
@@ -141,68 +140,95 @@ AddEventHandler('D4rk_Smart:ExitCage', function(netId)
 end)
 
 -- ============================================
--- RESET
+-- RESET EVENT
 -- ============================================
 RegisterNetEvent('D4rk_Smart:ResetAll')
 AddEventHandler('D4rk_Smart:ResetAll', function(netId)
     local source = source
 
-    -- Verify controller
-    if GetVehicleController(netId) ~= source then
-        return
-    end
-
-    -- Reset state
     local state = InitializeVehicleState(netId)
     state.controls = {}
 
-    -- Notify all clients
-    TriggerClientEvent('D4rk_Smart:ResetAllClient', -1, netId)
+    -- Sync to other clients (nicht an Sender!)
+    local players = GetPlayers()
+    for _, player in ipairs(players) do
+        if tonumber(player) ~= source then
+            TriggerClientEvent('D4rk_Smart:ResetAllClient', tonumber(player), netId)
+        end
+    end
 
     if Config.Debug then
-        print(string.format('^3[D4rk_Smart] Vehicle %d reset by player %d^7', netId, source))
+        print(string.format('^2[D4rk_Smart] Vehicle %d controls reset by player %d^7', netId, source))
     end
 end)
 
 -- ============================================
--- PLAYER DISCONNECT
--- ============================================
-AddEventHandler('playerDropped', function(reason)
-    local source = source
-
-    -- Remove from controllers
-    for netId, controller in pairs(vehicleControllers) do
-        if controller == source then
-            RemoveVehicleController(netId)
-
-            if Config.Debug then
-                print(string.format('^3[D4rk_Smart] Player %d dropped, released vehicle %d^7', source, netId))
-            end
-        end
-    end
-
-    -- Remove from cage occupants
-    for netId, state in pairs(vehicleStates) do
-        for i, playerId in ipairs(state.cageOccupants) do
-            if playerId == source then
-                table.remove(state.cageOccupants, i)
-                TriggerClientEvent('D4rk_Smart:SyncCageClient', -1, netId, #state.cageOccupants)
-                break
-            end
-        end
-    end
-end)
-
--- ============================================
--- STATE REQUEST
+-- FIX #3: STATE REQUEST (für Spieler die dazukommen)
 -- ============================================
 RegisterNetEvent('D4rk_Smart:RequestState')
 AddEventHandler('D4rk_Smart:RequestState', function(netId)
     local source = source
     local state = vehicleStates[netId]
 
-    if state then
-        TriggerClientEvent('D4rk_Smart:ReceiveState', source, netId, state)
+    if not state then return end
+
+    -- Alle Bone-Werte an den anfragenden Spieler schicken
+    if state.controls then
+        for boneIndex, value in pairs(state.controls) do
+            TriggerClientEvent('D4rk_Smart:SyncControlClient', source, netId, boneIndex, value)
+        end
+    end
+
+    -- Stabilizer-Status
+    if state.stabilizersDeployed then
+        TriggerClientEvent('D4rk_Smart:SyncStabilizersClient', source, netId, true)
+    end
+
+    -- Wasser-Status
+    if state.waterActive then
+        TriggerClientEvent('D4rk_Smart:SyncWaterClient', source, netId, true)
+    end
+
+    if Config.Debug then
+        print(string.format('^2[D4rk_Smart] Sent state for vehicle %d to player %d^7', netId, source))
+    end
+end)
+
+-- ============================================
+-- FIX #5: PLAYER DROPPED — Fahrzeuge freigeben
+-- ============================================
+AddEventHandler('playerDropped', function(reason)
+    local source = source
+
+    -- Alle Fahrzeuge freigeben die dieser Spieler kontrolliert hat
+    local released = {}
+    for netId, controller in pairs(vehicleControllers) do
+        if controller == source then
+            table.insert(released, netId)
+        end
+    end
+
+    for _, netId in ipairs(released) do
+        vehicleControllers[netId] = nil
+
+        -- Alle anderen Clients informieren
+        TriggerClientEvent('D4rk_Smart:ForceRelease', -1, netId)
+    end
+
+    -- Spieler aus Cage-Occupants entfernen
+    for netId, state in pairs(vehicleStates) do
+        if state.cageOccupants then
+            for i = #state.cageOccupants, 1, -1 do
+                if state.cageOccupants[i] == source then
+                    table.remove(state.cageOccupants, i)
+                end
+            end
+        end
+    end
+
+    if #released > 0 and Config.Debug then
+        print(string.format('^3[D4rk_Smart] Player %d disconnected, released %d vehicle(s)^7',
+            source, #released))
     end
 end)
 
@@ -260,7 +286,8 @@ if Config.Debug then
     RegisterCommand('smartvehicle:controllers', function(source, args)
         print('^2[D4rk_Smart] Active controllers:^7')
         for netId, controller in pairs(vehicleControllers) do
-            print(string.format('Vehicle %d controlled by player %d', netId, controller))
+            local name = GetPlayerName(controller) or '?'
+            print(string.format('Vehicle %d controlled by %s (ID: %d)', netId, name, controller))
         end
     end, true)
 end

@@ -24,22 +24,12 @@ Config.MaxBonesPerVehicle = 20
 -- KEYBINDS
 -- ============================================
 Config.Keys = {
-    OpenMenu = 38,          -- E
-    OpenRemote = 168,       -- F7
-    EnterCage = 38,         -- E (near cage)
-    ExitCage = 73,          -- X
-    ToggleWater = 47,       -- G
-    StabilizersToggle = 47, -- G
-    MenuUp = 172,           -- Arrow Up
-    MenuDown = 173,         -- Arrow Down
-    MenuLeft = 174,         -- Arrow Left
-    MenuRight = 175,        -- Arrow Right
-    MenuSelect = 191,       -- Enter
-    MenuBack = 177,         -- Backspace
-    IncreaseControl = 172,  -- Arrow Up
-    DecreaseControl = 173,  -- Arrow Down
-    RotateLeft = 108,       -- Numpad 4
-    RotateRight = 109,      -- Numpad 6
+    OpenMenu          = 38,  -- E
+    OpenRemote        = 168, -- F7
+    EnterCage         = 38,  -- E
+    ExitCage          = 73,  -- X
+    ToggleWater       = 47,  -- G
+    StabilizersToggle = 47,  -- G
 }
 
 -- ============================================
@@ -243,9 +233,6 @@ Config.Vehicles = {
             enabled = true,
             control = { 0, 101 },
             locations = {
-                ['misc_d'] = {
-                    { directionOffSet = vector3(0.0, 10.0, 0.5), color = { 255, 255, 255 }, distance = 70.0, brightness = 70.0, hardness = 2.3, radius = 25.0, falloff = 25.0 },
-                },
                 ['vehicle'] = {
                     { directionOffSet = vector3(0.0, 10.0, 0.0), color = { 255, 255, 255 }, distance = 50.0, brightness = 60.0, hardness = 2.0, radius = 20.0, falloff = 20.0 },
                 },

@@ -1,41 +1,9 @@
 -- D4rk Smart Vehicle - Advanced Controls
--- FIX #1: Keine lokalen Variablen mehr - nutze globale aus main.lua
+-- VERSION 2.2 - MULTIPLAYER FIXES
 -- controlActive, remoteActive, menuOpen sind global in main.lua definiert
 
-local cachedVehicles = {}
-local lastVehicleScan = 0
-
-function GetNearbyConfiguredVehicles(playerCoords, maxDist)
-    local now = GetGameTimer()
-
-    -- Nur alle 500ms neu scannen
-    if now - lastVehicleScan > 500 then
-        lastVehicleScan = now
-        cachedVehicles = {}
-
-        local vehicles = GetGamePool('CVehicle')
-        for _, vehicle in ipairs(vehicles) do
-            if DoesEntityExist(vehicle) then
-                local vehicleName = IsVehicleConfigured(vehicle)
-                if vehicleName then
-                    local dist = #(playerCoords - GetEntityCoords(vehicle))
-                    if dist < maxDist then
-                        table.insert(cachedVehicles, {
-                            vehicle = vehicle,
-                            name = vehicleName,
-                            distance = dist
-                        })
-                    end
-                end
-            end
-        end
-    end
-
-    return cachedVehicles
-end
-
 -- ============================================
--- START CONTROL (FIX #3: wird jetzt von Proximity genutzt)
+-- START CONTROL
 -- ============================================
 function StartControl(vehicle, vehicleName, mode)
     if controlActive then
@@ -80,7 +48,6 @@ function StopControl()
         if netId then
             TriggerServerEvent('D4rk_Smart:StopControl', netId)
         end
-        TriggerServerEvent('D4rk_Smart:StopControl', netId)
     end
 
     -- Hide HUD
@@ -161,7 +128,6 @@ function ControlThread()
     end
 
     -- Sicherheits-Cleanup: Nur stoppen wenn noch aktiv
-    -- (Verhindert doppeltes StopControl)
     if controlActive then
         StopControl()
     end
@@ -192,11 +158,13 @@ function HandleControls()
                     delta = -1.0
                 end
             else
-                -- Normale Taste
-                if IsDisabledControlPressed(0, mapping.increase) then
-                    delta = 1.0
-                elseif IsDisabledControlPressed(0, mapping.decrease) then
-                    delta = -1.0
+                -- Normale Taste (NUR wenn Shift NICHT gedrückt, sonst Conflict mit Shift-Combos)
+                if not IsDisabledControlPressed(0, 21) then
+                    if IsDisabledControlPressed(0, mapping.increase) then
+                        delta = 1.0
+                    elseif IsDisabledControlPressed(0, mapping.decrease) then
+                        delta = -1.0
+                    end
                 end
             end
 
@@ -248,14 +216,12 @@ function ActivateRemote(vehicle, vehicleName)
         return
     end
 
-    print('🔵 Aktiviere Fernsteuerung')
-
     remoteActive = true
     currentVehicle = vehicle
     currentVehicleName = vehicleName
     currentConfig = GetVehicleConfig(vehicleName)
     controlMode = 'remote'
-    controlActive = true -- FIX: controlActive auch setzen!
+    controlActive = true
 
     -- Initialize state
     InitializeVehicleState(vehicle, vehicleName)
@@ -277,10 +243,8 @@ end
 function DeactivateRemote()
     if not remoteActive then return end
 
-    print('🔵 Deaktiviere Fernsteuerung')
-
     remoteActive = false
-    controlActive = false -- FIX: controlActive auch zurücksetzen!
+    controlActive = false
 
     -- Notify server
     if currentVehicle then
@@ -288,7 +252,6 @@ function DeactivateRemote()
         if netId then
             TriggerServerEvent('D4rk_Smart:StopControl', netId)
         end
-        TriggerServerEvent('D4rk_Smart:StopControl', netId)
     end
 
     -- Schließe Compact HUD
@@ -306,7 +269,7 @@ function DeactivateRemote()
 end
 
 -- ============================================
--- PROXIMITY DETECTION
+-- PROXIMITY DETECTION (MULTIPLAYER-FIX)
 -- ============================================
 CreateThread(function()
     while true do
@@ -331,44 +294,57 @@ CreateThread(function()
             end
         end
 
-        -- Check if standing near vehicle
+        -- FIX #1: Standing near vehicle → NÄCHSTES Fahrzeug statt erstes!
         if not inVehicle and Config.UseStandingControl and not controlActive then
             local vehicles = GetGamePool('CVehicle')
+            local closestDist = Config.MaxStandingDistance
 
             for _, vehicle in ipairs(vehicles) do
-                local vehicleCoords = GetEntityCoords(vehicle)
-                local distance = #(playerCoords - vehicleCoords)
-
-                if distance < Config.MaxStandingDistance then
-                    local vehicleName = IsVehicleConfigured(vehicle)
-                    if vehicleName then
-                        nearbyVehicle = vehicle
-                        nearbyVehicleName = vehicleName
-                        mode = 'standing'
-                        break
+                if DoesEntityExist(vehicle) then
+                    local dist = #(playerCoords - GetEntityCoords(vehicle))
+                    if dist < closestDist then
+                        local vehicleName = IsVehicleConfigured(vehicle)
+                        if vehicleName then
+                            nearbyVehicle = vehicle
+                            nearbyVehicleName = vehicleName
+                            closestDist = dist
+                            mode = 'standing'
+                            -- KEIN break! Weitersuchen nach näherem
+                        end
                     end
                 end
             end
         end
 
-        -- Nächstes konfig. Fahrzeug für Remote finden (unabhängig von nearbyVehicle!)
-        local remoteVehicle = nil
-        local remoteName = nil
-        local remoteDistance = Config.MaxRemoteDistance
-
-        if not inVehicle and Config.UseRemoteControl then
+        -- FIX #2: Props für ALLE nahen konfigurierten Fahrzeuge spawnen
+        -- Damit andere Spieler die Props sehen können
+        if not inVehicle then
             local vehicles = GetGamePool('CVehicle')
-
             for _, vehicle in ipairs(vehicles) do
-                local vehicleCoords = GetEntityCoords(vehicle)
-                local distance = #(playerCoords - vehicleCoords)
+                if DoesEntityExist(vehicle) then
+                    local dist = #(playerCoords - GetEntityCoords(vehicle))
+                    -- Props spawnen wenn in Sichtweite (Remote-Distance als Maximum)
+                    if dist < Config.MaxRemoteDistance then
+                        local vehicleName = IsVehicleConfigured(vehicle)
+                        if vehicleName then
+                            local netId = SafeGetNetId(vehicle)
+                            if netId and not spawnedBoneProps[netId] then
+                                Citizen.CreateThread(function()
+                                    SpawnBoneProps(vehicle, vehicleName)
+                                    SpawnStabilizerProps(vehicle, vehicleName)
+                                    SpawnCollisionObjects(vehicle, vehicleName)
+                                    SpawnCageProp(vehicle, vehicleName)
+                                    SpawnWaterProp(vehicle, vehicleName)
 
-                if distance < remoteDistance then
-                    local vehicleName = IsVehicleConfigured(vehicle)
-                    if vehicleName then
-                        remoteVehicle = vehicle
-                        remoteName = vehicleName
-                        remoteDistance = distance
+                                    -- FIX #3: Aktuellen State vom Server holen
+                                    Wait(500)
+                                    local nId = SafeGetNetId(vehicle)
+                                    if nId then
+                                        TriggerServerEvent('D4rk_Smart:RequestState', nId)
+                                    end
+                                end)
+                            end
+                        end
                     end
                 end
             end
@@ -389,19 +365,38 @@ CreateThread(function()
 
         -- ===== F7 Remote Control =====
         if remoteActive then
-            -- Bereits aktiv → F7 zum Deaktivieren
             sleep = 0
             if IsControlJustPressed(0, Config.Keys.OpenRemote) then
                 DeactivateRemote()
             end
-        elseif remoteVehicle and not controlActive and not menuOpen then
-            -- Fahrzeug in Reichweite → F7 Prompt zeigen
-            sleep = 0
-            AddTextEntry('D4RK_REMOTE', GetTranslation('open_remote'))
-            DisplayHelpTextThisFrame('D4RK_REMOTE', false)
+        elseif not inVehicle and Config.UseRemoteControl and not controlActive and not menuOpen then
+            local vehicles = GetGamePool('CVehicle')
+            local closestVehicle = nil
+            local closestDistance = Config.MaxRemoteDistance
+            local closestName = nil
 
-            if IsControlJustPressed(0, Config.Keys.OpenRemote) then
-                ActivateRemote(remoteVehicle, remoteName)
+            for _, vehicle in ipairs(vehicles) do
+                if DoesEntityExist(vehicle) then
+                    local dist = #(playerCoords - GetEntityCoords(vehicle))
+                    if dist < closestDistance then
+                        local vehicleName = IsVehicleConfigured(vehicle)
+                        if vehicleName then
+                            closestVehicle = vehicle
+                            closestDistance = dist
+                            closestName = vehicleName
+                        end
+                    end
+                end
+            end
+
+            if closestVehicle then
+                sleep = 0
+                AddTextEntry('D4RK_REMOTE', GetTranslation('open_remote'))
+                DisplayHelpTextThisFrame('D4RK_REMOTE', false)
+
+                if IsControlJustPressed(0, Config.Keys.OpenRemote) then
+                    ActivateRemote(closestVehicle, closestName)
+                end
             end
         end
 

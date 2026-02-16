@@ -1,4 +1,5 @@
 -- D4rk Smart Vehicle - Collision Objects (PROP-BASED)
+-- VERSION 2.2 - SafeGetEntity Fix
 -- Begehbare Objekte die an der Prop-Kette hängen
 local collisionProps = {} -- per vehicle netId
 
@@ -100,6 +101,23 @@ function DeleteCollisionObjects(netId)
     collisionProps[netId] = nil
 end
 
+-- ============================================
+-- CLEANUP THREAD (FIX: SafeGetEntity statt NetworkGetEntityFromNetworkId)
+-- ============================================
+Citizen.CreateThread(function()
+    while true do
+        Wait(5000)
+        local toRemove = {}
+        for netId, _ in pairs(collisionProps) do
+            if not SafeGetEntity(netId) then
+                table.insert(toRemove, netId)
+            end
+        end
+        for _, netId in ipairs(toRemove) do
+            DeleteCollisionObjects(netId)
+        end
+    end
+end)
 
 -- ============================================
 -- CLEANUP ON STOP
