@@ -193,6 +193,7 @@ Config.Vehicles = {
             propModel    = 'prop_roadcone02a',
             maxExtension = 1.5,
             animDuration = 2000,
+            liftHeight   = 0.4,
             soundEffect  = 'stabilizer',
             bones        = {
                 { side = 'front_left',  offset = vector3(-1.5, 2.0, -0.3),  attachBone = 'bodyshell' },
@@ -381,6 +382,7 @@ Config.Vehicles = {
             propModel    = 'prop_roadcone02a',
             maxExtension = 1.5,
             animDuration = 2000,
+            liftHeight   = 0.4,
             soundEffect  = 'stabilizer',
             bones        = {
                 { side = 'front_left',  offset = vector3(-1.5, 2.0, -0.3),  attachBone = 'bodyshell' },
@@ -493,6 +495,7 @@ Config.Vehicles = {
             propModel    = 'prop_roadcone02a',
             maxExtension = 2.0,
             animDuration = 2500,
+            liftHeight   = 0.4,
             soundEffect  = 'stabilizer',
             bones        = {
                 { side = 'front_left',  offset = vector3(-1.8, 2.5, -0.3),  attachBone = 'bodyshell' },
@@ -599,6 +602,7 @@ Config.Vehicles = {
             propModel    = 'prop_roadcone02a',
             maxExtension = 1.5,
             animDuration = 2000,
+            liftHeight   = 0.4,
             soundEffect  = 'stabilizer',
             bones        = {
                 { side = 'front_left',  offset = vector3(-1.5, 2.0, -0.3),  attachBone = 'bodyshell' },

@@ -351,20 +351,14 @@ function InitializeVehicleState(vehicle, vehicleName)
         end
     end
 
-    -- Props spawnen
-    SpawnBoneProps(vehicle, vehicleName)
-
-    -- NEU: Collision Objects spawnen
-    SpawnCollisionObjects(vehicle, vehicleName)
-
-    -- NEU: Stützen-Props spawnen
-    SpawnStabilizerProps(vehicle, vehicleName)
-
-    -- NEU: Cage-Prop spawnen
-    SpawnCageProp(vehicle, vehicleName)
-
-    -- NEU: Water-Prop spawnen
-    SpawnWaterProp(vehicle, vehicleName)
+    -- Props in eigenem Thread spawnen (blockiert nicht das Menü!)
+    Citizen.CreateThread(function()
+        SpawnBoneProps(vehicle, vehicleName)
+        SpawnStabilizerProps(vehicle, vehicleName)
+        SpawnCollisionObjects(vehicle, vehicleName)
+        SpawnCageProp(vehicle, vehicleName)
+        SpawnWaterProp(vehicle, vehicleName)
+    end)
 
     return vehicleStates[netId]
 end
@@ -420,7 +414,6 @@ function ToggleStabilizers(vehicle)
     local stabConfig = state.config.stabilizers
     if not stabConfig or not stabConfig.enabled then return end
 
-    -- Nicht während Animation
     local netId = NetworkGetNetworkIdFromEntity(vehicle)
     if stabAnimating and stabAnimating[netId] then
         ShowNotification('Stützen fahren gerade...', 'warning')
@@ -430,8 +423,7 @@ function ToggleStabilizers(vehicle)
     local deploy = not state.stabilizersDeployed
     state.stabilizersDeployed = deploy
 
-    -- Fahrzeug einfrieren/freigeben
-    FreezeEntityPosition(vehicle, deploy)
+    -- Motor/Handbremse sofort
     if deploy then
         SetVehicleEngineOn(vehicle, false, true, true)
         SetVehicleHandbrake(vehicle, true)
@@ -439,10 +431,11 @@ function ToggleStabilizers(vehicle)
         SetVehicleHandbrake(vehicle, false)
     end
 
-    -- Props animieren
+    -- KEIN FreezeEntityPosition hier!
+    -- Freeze passiert IN AnimateStabilizersProps NACH der Animation!
+
     AnimateStabilizersProps(vehicle, state.vehicleName, deploy)
 
-    -- Sync
     TriggerServerEvent('D4rk_Smart:SyncStabilizers', netId, deploy)
 
     SendNUIMessage({
@@ -450,7 +443,7 @@ function ToggleStabilizers(vehicle)
         deployed = deploy
     })
 
-    local msg = deploy and 'Stützen ausgefahren - Fahrzeug gesichert' or 'Stützen eingefahren - Fahrzeug fahrbereit'
+    local msg = deploy and 'Stützen ausgefahren - Fahrzeug angehoben' or 'Stützen eingefahren - Fahrzeug abgesenkt'
     ShowNotification(msg, 'info')
 end
 
@@ -684,14 +677,16 @@ AddEventHandler('D4rk_Smart:SyncStabilizersClient', function(netId, deployed)
 
     state.stabilizersDeployed = deployed
 
-    -- NEU: Auch bei anderen Spielern einfrieren
-    FreezeEntityPosition(vehicle, deployed)
+    -- Motor/Handbremse
     if deployed then
         SetVehicleEngineOn(vehicle, false, true, true)
         SetVehicleHandbrake(vehicle, true)
     else
         SetVehicleHandbrake(vehicle, false)
     end
+
+    -- KEIN FreezeEntityPosition hier!
+    -- Freeze passiert IN AnimateStabilizersProps NACH der Animation!
 
     AnimateStabilizers(vehicle, state.config.stabilizers, deployed)
 

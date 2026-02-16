@@ -89,7 +89,7 @@ function AnimateStabilizersProps(vehicle, vehicleName, deploy)
         SpawnStabilizerProps(vehicle, vehicleName)
     end
     if not stabProps[netId] then return end
-    if stabAnimating[netId] then return end -- Schon am animieren
+    if stabAnimating[netId] then return end
 
     local config = GetVehicleConfig(vehicleName)
     if not config or not config.stabilizers then return end
@@ -97,6 +97,11 @@ function AnimateStabilizersProps(vehicle, vehicleName, deploy)
     local stabConfig = config.stabilizers
     local maxExtension = stabConfig.maxExtension or 1.5
     local duration = stabConfig.animDuration or 2000
+    local liftHeight = stabConfig.liftHeight or 0.4 -- NEU: Wie hoch anheben (Meter)
+
+    -- Startposition merken
+    local startCoords = GetEntityCoords(vehicle)
+    local startHeading = GetEntityHeading(vehicle)
 
     stabAnimating[netId] = true
 
@@ -104,12 +109,13 @@ function AnimateStabilizersProps(vehicle, vehicleName, deploy)
         local startTime = GetGameTimer()
 
         while GetGameTimer() - startTime < duration do
-            Wait(16) -- ~60 FPS
+            Wait(16)
 
             local progress = (GetGameTimer() - startTime) / duration
             -- Ease in/out
             progress = progress * progress * (3.0 - 2.0 * progress)
 
+            -- ===== Stützen-Props bewegen =====
             for i, propData in pairs(stabProps[netId]) do
                 if propData and propData.entity and DoesEntityExist(propData.entity) then
                     local stab = propData.config
@@ -118,19 +124,17 @@ function AnimateStabilizersProps(vehicle, vehicleName, deploy)
 
                     local targetZ
                     if deploy then
-                        targetZ = baseOffset.z - (maxExtension * progress)                  -- Nach unten
+                        targetZ = baseOffset.z - (maxExtension * progress)
                     else
-                        targetZ = (baseOffset.z - maxExtension) + (maxExtension * progress) -- Zurück hoch
+                        targetZ = (baseOffset.z - maxExtension) + (maxExtension * progress)
                     end
 
-                    -- Bone Index
                     local boneIdx = 0
                     if stab.attachBone and stab.attachBone ~= '' then
                         local idx = GetEntityBoneIndexByName(vehicle, stab.attachBone)
                         if idx ~= -1 then boneIdx = idx end
                     end
 
-                    -- Re-attach mit neuem Offset
                     DetachEntity(propData.entity, false, false)
                     AttachEntityToEntity(
                         propData.entity, vehicle, boneIdx,
@@ -144,9 +148,26 @@ function AnimateStabilizersProps(vehicle, vehicleName, deploy)
                     propData.deployed = deploy
                 end
             end
+
+            -- ===== NEU: Fahrzeug anheben/absenken =====
+            local currentLift
+            if deploy then
+                currentLift = liftHeight * progress
+            else
+                currentLift = liftHeight * (1.0 - progress)
+            end
+
+            SetEntityCoords(
+                vehicle,
+                startCoords.x,
+                startCoords.y,
+                startCoords.z + currentLift,
+                false, false, false, false
+            )
+            SetEntityHeading(vehicle, startHeading)
         end
 
-        -- Finale Position sicherstellen
+        -- ===== Finale Position sicherstellen =====
         for i, propData in pairs(stabProps[netId]) do
             if propData and propData.entity and DoesEntityExist(propData.entity) then
                 local stab = propData.config
@@ -174,7 +195,20 @@ function AnimateStabilizersProps(vehicle, vehicleName, deploy)
             end
         end
 
-        -- Sound
+        -- Finale Fahrzeug-Position
+        local finalLift = deploy and liftHeight or 0.0
+        SetEntityCoords(
+            vehicle,
+            startCoords.x,
+            startCoords.y,
+            startCoords.z + finalLift,
+            false, false, false, false
+        )
+        SetEntityHeading(vehicle, startHeading)
+
+        -- JETZT erst einfrieren (nach dem Anheben!)
+        FreezeEntityPosition(vehicle, deploy)
+
         if stabConfig.soundEffect then
             PlaySoundEffect(stabConfig.soundEffect)
         end

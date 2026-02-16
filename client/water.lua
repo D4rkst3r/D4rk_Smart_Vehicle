@@ -98,13 +98,14 @@ function ToggleWater(vehicle, vehicleName)
     if waterActive[netId] then
         StopWater(netId)
         ShowNotification('Wasserwerfer AUS', 'info')
+        -- Sync AUS
+        TriggerServerEvent('D4rk_Smart:SyncWater', netId, false)
     else
         StartWater(vehicle, vehicleName, netId)
         ShowNotification('Wasserwerfer AN', 'success')
+        -- Sync AN
+        TriggerServerEvent('D4rk_Smart:SyncWater', netId, true)
     end
-
-    -- Sync
-    TriggerServerEvent('D4rk_Smart:SyncWater', netId, waterActive[netId] or false)
 end
 
 function StartWater(vehicle, vehicleName, netId)
@@ -157,7 +158,7 @@ function StartWater(vehicle, vehicleName, netId)
 
             if not DoesEntityExist(emitterEntity) then
                 StopWater(netId)
-                break
+                return -- NEU: return statt break!
             end
 
             -- Raycast for fire extinguishing
@@ -199,10 +200,12 @@ function StartWater(vehicle, vehicleName, netId)
 end
 
 function StopWater(netId)
-    waterActive[netId] = false
+    waterActive[netId] = false -- Thread stoppt dadurch
 
+    -- Partikel sofort stoppen
     if waterParticles[netId] then
         StopParticleFxLooped(waterParticles[netId], false)
+        RemoveParticleFx(waterParticles[netId], false) -- NEU: Auch wirklich entfernen!
         waterParticles[netId] = nil
     end
 end
