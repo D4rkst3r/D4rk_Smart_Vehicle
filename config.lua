@@ -4,7 +4,7 @@ Config = {}
 -- GENERAL SETTINGS
 -- ============================================
 Config.Locale = 'de'
-Config.Debug = false
+Config.Debug = true -- Set to false in production
 
 -- Control Modes
 Config.UseRemoteControl = true

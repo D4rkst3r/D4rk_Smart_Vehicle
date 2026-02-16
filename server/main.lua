@@ -1,6 +1,6 @@
 -- D4rk Smart Vehicle - Server Main
-local vehicleControllers = {}
-local vehicleStates = {}
+vehicleControllers = {}
+vehicleStates = {}
 
 -- ============================================
 -- STATE MANAGEMENT

@@ -55,11 +55,25 @@ end
 function SetBonePosition(vehicle, boneIndex, x, y, z)
     if boneIndex == -1 then return end
 
-    -- ECHTER Native!
     Citizen.InvokeNative(0xBD8D32550E5CEBFE, vehicle, boneIndex, x, y, z)
+    -- WICHTIG: Visuellen Refresh erzwingen!
+    Citizen.InvokeNative(0x6B9BBD38, vehicle)
 
     if Config.Debug then
         print(string.format('[Bone] Set position: %d = (%.3f, %.3f, %.3f)', boneIndex, x, y, z))
+    end
+end
+
+function SetBoneRotation(vehicle, boneIndex, x, y, z)
+    if boneIndex == -1 then return end
+
+    -- EIGENER Native für Rotation (NICHT SetBonePosition aufrufen!)
+    Citizen.InvokeNative(0xCF1247CC, vehicle, boneIndex, x, y, z)
+    -- WICHTIG: Visuellen Refresh erzwingen!
+    Citizen.InvokeNative(0x6B9BBD38, vehicle)
+
+    if Config.Debug then
+        print(string.format('[Bone] Set rotation: %d = (%.3f, %.3f, %.3f)', boneIndex, x, y, z))
     end
 end
 
@@ -75,18 +89,6 @@ function GetBoneRotation(vehicle, boneIndex)
 
     return Citizen.InvokeNative(0x46F8696933A63C9B, vehicle, boneIndex, Citizen.ReturnResultAnyway(),
         Citizen.ReturnResultAnyway(), Citizen.ReturnResultAnyway())
-end
-
-function SetBoneRotation(vehicle, boneIndex, x, y, z)
-    if boneIndex == -1 then return end
-
-    -- TRICK: "Rotation" ist oft Position auf anderer Achse!
-    -- Z-Rotation = Z-Position, X-Rotation = X-Position, etc.
-    SetBonePosition(vehicle, boneIndex, x, y, z)
-
-    if Config.Debug then
-        print(string.format('[Bone] Set "rotation" via position: %d = (%.3f, %.3f, %.3f)', boneIndex, x, y, z))
-    end
 end
 
 function ApplyBoneControl(vehicle, bone, value)
