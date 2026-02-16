@@ -10,6 +10,7 @@ menuOpen = false     -- GLOBAL: Sichtbar in allen Dateien
 remoteActive = false -- GLOBAL: Sichtbar in allen Dateien
 local isResetting = false
 local lastSoundTime = {}
+local lastSyncTime = {}
 
 -- ============================================
 -- HELPERS
@@ -59,6 +60,8 @@ end
 
 function SafeGetEntity(netId)
     if not netId or netId == 0 then return nil end
+    -- DIESE Prüfung VERHINDERT die Warning!
+    if not NetworkDoesNetworkIdExist(netId) then return nil end
     local entity = NetworkGetEntityFromNetworkId(netId)
     if not entity or entity == 0 or not DoesEntityExist(entity) then
         return nil
@@ -359,8 +362,7 @@ Citizen.CreateThread(function()
         Wait(5000)
         local toClean = {}
         for netId, _ in pairs(spawnedBoneProps) do
-            local vehicle = NetworkGetEntityFromNetworkId(netId)
-            if not vehicle or vehicle == 0 or not DoesEntityExist(vehicle) then
+            if not SafeGetEntity(netId) then
                 table.insert(toClean, netId)
             end
         end
@@ -421,25 +423,28 @@ function UpdateControl(vehicle, boneIndex, delta)
     local bone = state.config.bones[boneIndex]
     if not bone then return end
 
-    -- Calculate new value
     local currentValue = state.controlValues[boneIndex]
     local newValue = currentValue + (delta * bone.speed)
-
-    -- Clamp
     newValue = math.max(bone.min, math.min(bone.max, newValue))
 
     if newValue ~= currentValue then
         state.controlValues[boneIndex] = newValue
 
-        -- Apply locally (Prop bewegen)
+        -- Prop lokal bewegen (sofort, jeder Frame)
         ApplyBoneControl(vehicle, bone, newValue)
 
-        -- Sync to server
-        local netId = SafeGetNetId(vehicle)
-        if not netId then return end
-        TriggerServerEvent('D4rk_Smart:SyncControl', netId, boneIndex, newValue)
+        -- Server-Sync nur alle 100ms (statt jeden Frame!)
+        local key = boneIndex
+        local now = GetGameTimer()
+        if not lastSyncTime[key] or (now - lastSyncTime[key]) >= 100 then
+            lastSyncTime[key] = now
+            local netId = SafeGetNetId(vehicle)
+            if netId then
+                TriggerServerEvent('D4rk_Smart:SyncControl', netId, boneIndex, newValue)
+            end
+        end
 
-        -- Update NUI
+        -- NUI updaten
         SendNUIMessage({
             action = 'updateControl',
             index = boneIndex,

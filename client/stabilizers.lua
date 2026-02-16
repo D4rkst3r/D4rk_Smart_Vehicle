@@ -307,8 +307,7 @@ Citizen.CreateThread(function()
         Wait(5000)
         local toRemove = {}
         for netId, _ in pairs(stabProps) do
-            local veh = NetworkGetEntityFromNetworkId(netId)
-            if not veh or veh == 0 or not DoesEntityExist(veh) then
+            if not SafeGetEntity(netId) then
                 table.insert(toRemove, netId)
             end
         end

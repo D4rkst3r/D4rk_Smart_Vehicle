@@ -401,21 +401,24 @@ end)
 -- ============================================
 -- CLEANUP
 -- ============================================
-AddEventHandler('onResourceStop', function(resourceName)
-    if GetCurrentResourceName() ~= resourceName then return end
-
-    -- Remove all spawned props
-    for netId, propList in pairs(spawnedProps) do
-        for _, propData in ipairs(propList) do
-            if DoesEntityExist(propData.entity) then
+local toClean = {}
+for netId, _ in pairs(spawnedProps) do
+    if not SafeGetEntity(netId) then
+        table.insert(toClean, netId)
+    end
+end
+for _, netId in ipairs(toClean) do
+    -- Props direkt löschen
+    if spawnedProps[netId] then
+        for _, propData in ipairs(spawnedProps[netId]) do
+            if propData.entity and DoesEntityExist(propData.entity) then
                 DeleteEntity(propData.entity)
             end
         end
+        spawnedProps[netId] = nil
+        propStates[netId] = nil
     end
-
-    spawnedProps = {}
-    propStates = {}
-end)
+end
 
 -- ============================================
 -- EXPORTS

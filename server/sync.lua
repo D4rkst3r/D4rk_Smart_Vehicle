@@ -18,7 +18,7 @@ function CheckRateLimit(source)
 
     local data = playerSyncCount[source]
 
-    -- Reset window if expired (1 second)
+    -- Reset window
     if (currentTime - data.windowStart) >= 1000 then
         data.count = 0
         data.windowStart = currentTime
@@ -26,14 +26,20 @@ function CheckRateLimit(source)
 
     data.count = data.count + 1
 
-    -- Max 50 syncs per second
-    if data.count > 50 then
-        if Config.Debug then
-            print(string.format('^1[D4rk_Smart] Player %d exceeded rate limit^7', source))
+    -- ALT: 50 → viel zu niedrig
+    -- NEU: 300 pro Sekunde (4 Bones × 60fps + Props + Stabilizers)
+    if data.count > 300 then
+        -- Nur EINMAL pro Fenster loggen, nicht jedes Mal!
+        if not data.warned then
+            data.warned = true
+            if Config.Debug then
+                print(string.format('^3[D4rk_Smart] Player %d rate limited (%d/s)^7', source, data.count))
+            end
         end
         return false
     end
 
+    data.warned = false
     return true
 end
 

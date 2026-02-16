@@ -259,7 +259,7 @@ Config.Vehicles = {
             enabled = true,
             objects = {
                 {
-                    model     = 'prop_ladder_01',
+                    model     = 'prop_roadcone02a',
                     attachTo  = '2',
                     offset    = vector3(0.0, 0.0, -0.3),
                     rotation  = vector3(0.0, 0.0, 0.0),
