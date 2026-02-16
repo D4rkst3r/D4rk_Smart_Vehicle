@@ -36,8 +36,8 @@ Config.Keys = {
     MenuBack = 177,         -- Backspace
     IncreaseControl = 172,  -- Arrow Up
     DecreaseControl = 173,  -- Arrow Down
-    RotateLeft = 174,       -- Arrow Left
-    RotateRight = 175,      -- Arrow Right
+    RotateLeft = 108,       -- Numpad 4
+    RotateRight = 109,      -- Numpad 6
     StabilizersToggle = 47, -- G
 }
 
@@ -57,7 +57,7 @@ Config.Vehicles = {
         -- Bone Configuration
         bones = {
             {
-                name = 'turret_1base',
+                name = 'bumper_r',
                 label = 'Turm Rotation',
                 type = 'rotation',
                 axis = 'z',

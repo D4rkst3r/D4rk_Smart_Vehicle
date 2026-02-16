@@ -218,23 +218,20 @@ function setupQuickActions(vehicle) {
 // UPDATE FUNCTIONS
 // ============================================
 function updateControl(index, value) {
-  if (!currentVehicle || !currentVehicle.bones[index]) return;
+  var jsIndex = index - 1; // Lua zählt ab 1, JS ab 0
 
-  const bone = currentVehicle.bones[index];
+  if (!currentVehicle || !currentVehicle.bones[jsIndex]) return;
+
+  const bone = currentVehicle.bones[jsIndex];
   const range = bone.max - bone.min;
 
-  // Wir brauchen hier einen Wert zwischen 0.0 und 1.0 für scaleX
   const percentage = (value - bone.min) / range;
 
-  // Text-Update (bleibt gleich)
-  $(`#control-value-${index}`).text(value.toFixed(1));
+  $(`#control-value-${jsIndex}`).text(value.toFixed(1));
+  $(`#control-fill-${jsIndex}`).css("transform", `scaleX(${percentage})`);
 
-  // GPU-optimiertes Slider-Update
-  $(`#control-fill-${index}`).css("transform", `scaleX(${percentage})`);
-
-  // Restliche Logik
-  updateHudControl(index, value);
-  controlStates[index] = value;
+  updateHudControl(jsIndex, value);
+  controlStates[jsIndex] = value;
 }
 
 function updateStabilizers(deployed) {
