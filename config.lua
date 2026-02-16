@@ -102,7 +102,7 @@ Config.Vehicles = {
                 min             = -270.0,
                 max             = 270.0,
                 default         = 0.0,
-                speed           = 0.4,
+                speed           = 0.09,
                 controlGroup    = 'turret',
                 propModel       = 'prop_roadcone02a',
                 attachTo        = 'vehicle',
@@ -119,7 +119,7 @@ Config.Vehicles = {
                 min             = 0.0,
                 max             = 75.0,
                 default         = 0.0,
-                speed           = 0.3,
+                speed           = 0.05,
                 controlGroup    = 'ladder',
                 soundEffect     = 'hydraulic',
                 propModel       = 'prop_roadcone02a',
@@ -136,7 +136,7 @@ Config.Vehicles = {
                 min             = 0.0,
                 max             = 8.0,
                 default         = 0.0,
-                speed           = 0.15,
+                speed           = 0.02,
                 controlGroup    = 'extend',
                 soundEffect     = 'hydraulic',
                 propModel       = 'prop_roadcone02a',
@@ -163,7 +163,7 @@ Config.Vehicles = {
         },
 
         -- ======================
-        -- PROPS (London Studios Style)
+        -- PROPS
         -- ======================
         props = {
             {
@@ -251,18 +251,6 @@ Config.Vehicles = {
             }
         },
 
-        -- ======================
-        -- DOOR CONTROLS
-        -- ======================
-        doors = {
-            enabled = true,
-            controls = {
-                [210] = 0, -- NUM7 = Front Left
-                [211] = 1, -- NUM8 = Front Right
-                [212] = 2, -- NUM9 = Back Left
-                [213] = 3, -- NUM6 = Back Right
-            }
-        },
 
         -- ======================
         -- COLLISION (begehbare Leiter, an Prop #2)
@@ -684,8 +672,8 @@ Config.Translations = {
         ['stabilizers_retracting'] = 'Stützen werden eingefahren...',
 
         -- Cage
+        ['exit_cage']              = 'Drücke ~INPUT_VEH_DUCK~ um Korb zu verlassen',
         ['enter_cage']             = 'Drücke ~INPUT_CONTEXT~ um in Korb zu steigen',
-        ['exit_cage']              = 'Drücke ~INPUT_VEH_EXIT~ um Korb zu verlassen',
         ['cage_entered']           = 'Im Rettungskorb',
         ['cage_exited']            = 'Rettungskorb verlassen',
         ['cage_full']              = 'Korb ist voll',

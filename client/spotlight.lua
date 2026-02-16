@@ -17,7 +17,8 @@ function ToggleSpotlights(vehicle)
         return
     end
 
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    local netId = SafeGetNetId(vehicle)
+    if not netId then return end
 
     if spotlightsActive[netId] then
         DeactivateSpotlights(vehicle)
@@ -27,7 +28,8 @@ function ToggleSpotlights(vehicle)
 end
 
 function ActivateSpotlights(vehicle, spotlightConfig)
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    local netId = SafeGetNetId(vehicle)
+    if not netId then return end
 
     if spotlightsActive[netId] then return end
 
@@ -56,7 +58,8 @@ function ActivateSpotlights(vehicle, spotlightConfig)
 end
 
 function DeactivateSpotlights(vehicle)
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    local netId = SafeGetNetId(vehicle)
+    if not netId then return end
 
     if not spotlightsActive[netId] then return end
 
@@ -77,7 +80,8 @@ end
 -- SPOTLIGHT THREAD
 -- ============================================
 function SpotlightThread(vehicle, locationId, spotlights)
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    local netId = SafeGetNetId(vehicle)
+    if not netId then return end
 
     while spotlightsActive[netId] and DoesEntityExist(vehicle) do
         Wait(0)
@@ -203,7 +207,8 @@ end)
 -- EXPORTS
 -- ============================================
 exports('AreSpotlightsActive', function(vehicle)
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    local netId = SafeGetNetId(vehicle)
+    if not netId then return end
     return spotlightsActive[netId] or false
 end)
 

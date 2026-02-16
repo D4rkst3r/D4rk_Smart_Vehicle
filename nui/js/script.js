@@ -193,6 +193,13 @@ function setupQuickActions(vehicle) {
     $("#cageStatus").hide();
   }
 }
+function enterCage() {
+  $.post("https://D4rk_Smart_Vehicle/enterCage", JSON.stringify({}));
+}
+
+function exitCage() {
+  $.post("https://D4rk_Smart_Vehicle/exitCage", JSON.stringify({}));
+}
 
 // ============================================
 // UPDATE FUNCTIONS

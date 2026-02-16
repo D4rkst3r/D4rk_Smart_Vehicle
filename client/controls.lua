@@ -24,7 +24,8 @@ function StartControl(vehicle, vehicleName, mode)
     InitializeVehicleState(vehicle, vehicleName)
 
     -- Notify server
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    local netId = SafeGetNetId(vehicle)
+    if not netId then return end
     TriggerServerEvent('D4rk_Smart:StartControl', netId)
 
     -- Show HUD
@@ -225,7 +226,8 @@ function ActivateRemote(vehicle, vehicleName)
     InitializeVehicleState(vehicle, vehicleName)
 
     -- Notify server
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    local netId = SafeGetNetId(vehicle)
+    if not netId then return end
     TriggerServerEvent('D4rk_Smart:StartControl', netId)
 
     -- Zeige NUR das Compact HUD (nicht das große Panel!)
@@ -270,8 +272,7 @@ end
 -- ============================================
 CreateThread(function()
     while true do
-        Wait(0)
-
+        local sleep = 500
         local playerPed = PlayerPedId()
         local playerCoords = GetEntityCoords(playerPed)
         local inVehicle = IsPedInAnyVehicle(playerPed, false)
@@ -312,8 +313,32 @@ CreateThread(function()
             end
         end
 
-        -- Show prompt
+        -- Nächstes konfig. Fahrzeug für Remote finden (unabhängig von nearbyVehicle!)
+        local remoteVehicle = nil
+        local remoteName = nil
+        local remoteDistance = Config.MaxRemoteDistance
+
+        if not inVehicle and Config.UseRemoteControl then
+            local vehicles = GetGamePool('CVehicle')
+
+            for _, vehicle in ipairs(vehicles) do
+                local vehicleCoords = GetEntityCoords(vehicle)
+                local distance = #(playerCoords - vehicleCoords)
+
+                if distance < remoteDistance then
+                    local vehicleName = IsVehicleConfigured(vehicle)
+                    if vehicleName then
+                        remoteVehicle = vehicle
+                        remoteName = vehicleName
+                        remoteDistance = distance
+                    end
+                end
+            end
+        end
+
+        -- ===== E-Prompt für Panel =====
         if nearbyVehicle and not controlActive and not menuOpen then
+            sleep = 0
             AddTextEntry('D4RK_PROMPT', GetTranslation('open_menu'))
             DisplayHelpTextThisFrame('D4RK_PROMPT', false)
 
@@ -324,43 +349,25 @@ CreateThread(function()
             end
         end
 
-        -- Remote control (FIX: elseif verhindert Aktivieren+Deaktivieren im selben Frame)
+        -- ===== F7 Remote Control =====
         if remoteActive then
             -- Bereits aktiv → F7 zum Deaktivieren
+            sleep = 0
             if IsControlJustPressed(0, Config.Keys.OpenRemote) then
                 DeactivateRemote()
             end
-        elseif not inVehicle and Config.UseRemoteControl and not controlActive and not menuOpen then
-            -- Noch nicht aktiv → F7 zum Aktivieren
-            local vehicles = GetGamePool('CVehicle')
-            local closestVehicle = nil
-            local closestDistance = Config.MaxRemoteDistance
-            local closestName = nil
+        elseif remoteVehicle and not controlActive and not menuOpen then
+            -- Fahrzeug in Reichweite → F7 Prompt zeigen
+            sleep = 0
+            AddTextEntry('D4RK_REMOTE', GetTranslation('open_remote'))
+            DisplayHelpTextThisFrame('D4RK_REMOTE', false)
 
-            for _, vehicle in ipairs(vehicles) do
-                local vehicleCoords = GetEntityCoords(vehicle)
-                local distance = #(playerCoords - vehicleCoords)
-
-                if distance < closestDistance then
-                    local vehicleName = IsVehicleConfigured(vehicle)
-                    if vehicleName then
-                        closestVehicle = vehicle
-                        closestDistance = distance
-                        closestName = vehicleName
-                    end
-                end
-            end
-
-            if closestVehicle then
-                if IsControlJustPressed(0, Config.Keys.OpenRemote) then
-                    ActivateRemote(closestVehicle, closestName)
-                end
+            if IsControlJustPressed(0, Config.Keys.OpenRemote) then
+                ActivateRemote(remoteVehicle, remoteName)
             end
         end
 
-        if not nearbyVehicle and not remoteActive then
-            Wait(500)
-        end
+        Wait(sleep)
     end
 end)
 

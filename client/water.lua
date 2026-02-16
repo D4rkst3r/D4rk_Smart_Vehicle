@@ -7,7 +7,8 @@ local waterParticles = {}
 -- WATER PROP SPAWNING
 -- ============================================
 function SpawnWaterProp(vehicle, vehicleName)
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    local netId = SafeGetNetId(vehicle)
+    if not netId then return end
     if waterProps[netId] then return waterProps[netId] end
 
     local config = GetVehicleConfig(vehicleName)
@@ -93,7 +94,8 @@ end
 -- WATER TOGGLE
 -- ============================================
 function ToggleWater(vehicle, vehicleName)
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    local netId = SafeGetNetId(vehicle)
+    if not netId then return end
 
     -- NEU: Saubere Prüfung
     if waterActive[netId] then

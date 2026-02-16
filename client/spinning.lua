@@ -7,7 +7,8 @@ local spinningProps = {}
 -- SPIN CONTROL
 -- ============================================
 function ToggleSpin(vehicle, propId, spinConfig)
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    local netId = SafeGetNetId(vehicle)
+    if not netId then return end
 
     if not spinningProps[netId] then
         spinningProps[netId] = {}
@@ -29,7 +30,8 @@ function StartSpin(vehicle, propId, spinConfig)
         return
     end
 
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    local netId = SafeGetNetId(vehicle)
+    if not netId then return end
 
     if not spinningProps[netId] then
         spinningProps[netId] = {}
@@ -57,7 +59,8 @@ function StartSpin(vehicle, propId, spinConfig)
 end
 
 function StopSpin(vehicle, propId)
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    local netId = SafeGetNetId(vehicle)
+    if not netId then return end
 
     if spinningProps[netId] and spinningProps[netId][propId] then
         spinningProps[netId][propId].active = false
@@ -78,7 +81,8 @@ end
 -- SPIN THREAD
 -- ============================================
 function SpinThread(vehicle, propId, spinConfig)
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    local netId = SafeGetNetId(vehicle)
+    if not netId then return end
     local propData = GetPropByID(vehicle, propId) -- Einmalig holen
 
     if not propData or not DoesEntityExist(propData.entity) then return end
@@ -168,7 +172,8 @@ end)
 -- EXPORTS
 -- ============================================
 exports('IsSpinning', function(vehicle, propId)
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    local netId = SafeGetNetId(vehicle)
+    if not netId then return end
     return spinningProps[netId] and spinningProps[netId][propId] ~= nil
 end)
 
@@ -177,7 +182,8 @@ exports('ToggleSpin', function(vehicle, propId, spinConfig)
 end)
 
 exports('StopAllSpins', function(vehicle)
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    local netId = SafeGetNetId(vehicle)
+    if not netId then return end
 
     if spinningProps[netId] then
         for propId, _ in pairs(spinningProps[netId]) do

@@ -6,7 +6,8 @@ local collisionProps = {} -- per vehicle netId
 -- SPAWN COLLISION OBJECTS
 -- ============================================
 function SpawnCollisionObjects(vehicle, vehicleName)
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    local netId = SafeGetNetId(vehicle)
+    if not netId then return end
     if collisionProps[netId] then return end
 
     local config = GetVehicleConfig(vehicleName)

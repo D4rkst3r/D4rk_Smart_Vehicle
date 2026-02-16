@@ -50,6 +50,22 @@ function GetDistanceToVehicle(vehicle)
     return #(playerCoords - vehicleCoords)
 end
 
+function SafeGetNetId(entity)
+    if not entity or entity == 0 or not DoesEntityExist(entity) then
+        return nil
+    end
+    return NetworkGetNetworkIdFromEntity(entity)
+end
+
+function SafeGetEntity(netId)
+    if not netId or netId == 0 then return nil end
+    local entity = NetworkGetEntityFromNetworkId(netId)
+    if not entity or entity == 0 or not DoesEntityExist(entity) then
+        return nil
+    end
+    return entity
+end
+
 -- ============================================
 -- BONE INDEX HELPER (für water.lua, cage.lua etc.)
 -- ============================================
@@ -84,7 +100,8 @@ end
 
 -- Alle Props für ein Fahrzeug spawnen
 function SpawnBoneProps(vehicle, vehicleName)
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    local netId = SafeGetNetId(vehicle)
+    if not netId then return end
     if spawnedBoneProps[netId] then return true end
 
     local config = GetVehicleConfig(vehicleName)
@@ -194,6 +211,20 @@ function GetAttachTarget(vehicle, netId, boneConfig)
     end
 end
 
+RegisterNUICallback('enterCage', function(data, cb)
+    if currentVehicle and currentVehicleName then
+        EnterCage(currentVehicle, currentVehicleName)
+        CloseControlPanel() -- Panel zu, Spieler ist jetzt im Korb
+    end
+    cb('ok')
+end)
+
+RegisterNUICallback('exitCage', function(data, cb)
+    if currentVehicle then
+        ExitCage(currentVehicle)
+    end
+    cb('ok')
+end)
 -- ============================================
 -- KERN: Prop anhängen / neu-anhängen
 -- ============================================
@@ -265,7 +296,8 @@ end
 -- ApplyBoneControl (PROP-VERSION)
 -- ============================================
 function ApplyBoneControl(vehicle, bone, value)
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    local netId = SafeGetNetId(vehicle)
+    if not netId then return end
     local state = GetVehicleState(vehicle)
     if not state then return end
 
@@ -316,7 +348,8 @@ end
 -- Cleanup wenn Fahrzeug nicht mehr gesteuert wird
 function CleanupVehicleProps(vehicle)
     if not DoesEntityExist(vehicle) then return end
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    local netId = SafeGetNetId(vehicle)
+    if not netId then return end
     DeleteBoneProps(netId)
 end
 
@@ -324,14 +357,14 @@ end
 Citizen.CreateThread(function()
     while true do
         Wait(5000)
-        local toRemove = {}
+        local toClean = {}
         for netId, _ in pairs(spawnedBoneProps) do
-            local veh = NetworkGetEntityFromNetworkId(netId)
-            if not DoesEntityExist(veh) then
-                table.insert(toRemove, netId)
+            local vehicle = NetworkGetEntityFromNetworkId(netId)
+            if not vehicle or vehicle == 0 or not DoesEntityExist(vehicle) then
+                table.insert(toClean, netId)
             end
         end
-        for _, netId in ipairs(toRemove) do
+        for _, netId in ipairs(toClean) do
             DeleteBoneProps(netId)
         end
     end
@@ -341,7 +374,8 @@ end)
 -- STATE MANAGEMENT
 -- ============================================
 function InitializeVehicleState(vehicle, vehicleName)
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    local netId = SafeGetNetId(vehicle)
+    if not netId then return end
 
     if not vehicleStates[netId] then
         local config = GetVehicleConfig(vehicleName)
@@ -372,7 +406,8 @@ function InitializeVehicleState(vehicle, vehicleName)
 end
 
 function GetVehicleState(vehicle)
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    local netId = SafeGetNetId(vehicle)
+    if not netId then return end
     return vehicleStates[netId]
 end
 
@@ -400,7 +435,8 @@ function UpdateControl(vehicle, boneIndex, delta)
         ApplyBoneControl(vehicle, bone, newValue)
 
         -- Sync to server
-        local netId = NetworkGetNetworkIdFromEntity(vehicle)
+        local netId = SafeGetNetId(vehicle)
+        if not netId then return end
         TriggerServerEvent('D4rk_Smart:SyncControl', netId, boneIndex, newValue)
 
         -- Update NUI
@@ -422,7 +458,8 @@ function ToggleStabilizers(vehicle)
     local stabConfig = state.config.stabilizers
     if not stabConfig or not stabConfig.enabled then return end
 
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    local netId = SafeGetNetId(vehicle)
+    if not netId then return end
     if stabAnimating and stabAnimating[netId] then
         ShowNotification('Stützen fahren gerade...', 'warning')
         return
@@ -504,7 +541,8 @@ function OpenControlPanel(vehicle, vehicleName)
     controlActive = true
 
     -- 3. Server & Logik starten
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    local netId = SafeGetNetId(vehicle)
+    if not netId then return end
     TriggerServerEvent('D4rk_Smart:StartControl', netId)
     CreateThread(ControlThread)
 
@@ -589,7 +627,8 @@ function ResetAllControls(vehicle)
         isResetting = false
         return
     end
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    local netId = SafeGetNetId(vehicle)
+    if not netId then return end
 
     for i, bone in ipairs(state.config.bones) do
         local defaultValue = bone.default or bone.min or 0.0

@@ -1,12 +1,14 @@
 -- D4rk Smart Vehicle - Cage/Basket System (PROP-BASED)
-local cageProps = {}     -- Spawned cage props per vehicle netId
-local cageOccupants = {} -- Players in cage
+local cageProps = {}
+local cageOccupants = {}
+local playerInCage = false
 
 -- ============================================
 -- CAGE PROP SPAWNING
 -- ============================================
 function SpawnCageProp(vehicle, vehicleName)
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    local netId = SafeGetNetId(vehicle)
+    if not netId then return end
     if cageProps[netId] then return cageProps[netId] end
 
     local config = GetVehicleConfig(vehicleName)
@@ -93,7 +95,8 @@ end
 -- CAGE ENTER/EXIT
 -- ============================================
 function EnterCage(vehicle, vehicleName)
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    local netId = SafeGetNetId(vehicle)
+    if not netId then return end
     local config = GetVehicleConfig(vehicleName)
     if not config or not config.cage or not config.cage.enabled then return end
 
@@ -122,6 +125,7 @@ function EnterCage(vehicle, vehicleName)
         0.0, 0.0, 0.0,
         false, true, false, true, 2, true
     )
+    playerInCage = true -- NEU
 
     -- Track occupant
     if not cageOccupants[netId] then cageOccupants[netId] = {} end
@@ -143,11 +147,13 @@ function EnterCage(vehicle, vehicleName)
 end
 
 function ExitCage(vehicle)
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    local netId = SafeGetNetId(vehicle)
+    if not netId then return end
     local playerPed = PlayerPedId()
 
     -- Detach player
     DetachEntity(playerPed, true, false)
+    playerInCage = false -- NEU
 
     -- Safe ground position
     local playerCoords = GetEntityCoords(playerPed)
@@ -178,13 +184,24 @@ end
 
 -- ============================================
 -- CAGE PROXIMITY THREAD
+-- Nur für Personen die NICHT am Fahrzeug sind
+-- (z.B. auf einem Dach stehen und der Korb ist bei ihnen)
 -- ============================================
 Citizen.CreateThread(function()
     while true do
         local sleep = 500
         local playerPed = PlayerPedId()
 
-        if not IsPedInAnyVehicle(playerPed, false) and not IsEntityAttached(playerPed) then
+        -- Einsteige-Check:
+        -- ✅ NICHT im Korb
+        -- ✅ NICHT im Fahrzeug
+        -- ✅ Panel NICHT offen (Panel hat eigenen Button)
+        -- ✅ Control NICHT aktiv
+        if not playerInCage
+            and not IsPedInAnyVehicle(playerPed, false)
+            and not menuOpen
+            and not controlActive
+        then
             local playerCoords = GetEntityCoords(playerPed)
             local vehicles = GetGamePool('CVehicle')
 
@@ -193,20 +210,34 @@ Citizen.CreateThread(function()
                 if vehicleName then
                     local config = GetVehicleConfig(vehicleName)
                     if config and config.cage and config.cage.enabled then
-                        local netId = NetworkGetNetworkIdFromEntity(vehicle)
+                        local netId = SafeGetNetId(vehicle)
+                        if not netId then return end
                         local cageData = cageProps[netId]
 
                         if cageData and DoesEntityExist(cageData.entity) then
                             local cageCoords = GetEntityCoords(cageData.entity)
-                            local distance = #(playerCoords - cageCoords)
+                            local vehicleCoords = GetEntityCoords(vehicle)
 
-                            if distance < (config.cage.enterDistance or 3.0) then
+                            -- Distanz: Spieler zum KORB-PROP (nicht zum Fahrzeug!)
+                            local distToCage = #(playerCoords - cageCoords)
+
+                            -- Distanz: Spieler zum FAHRZEUG
+                            local distToVehicle = #(playerCoords - vehicleCoords)
+
+                            -- Nur anzeigen wenn:
+                            -- Nah am Korb (<3m)
+                            -- UND weit weg vom Fahrzeug (>5m) → verhindert E-Konflikt
+                            if distToCage < (config.cage.enterDistance or 3.0)
+                                and distToVehicle > 5.0
+                            then
                                 sleep = 0
-                                -- Show prompt
-                                AddTextEntry('D4RK_HELP', GetTranslation('enter_cage'))
-                                DisplayHelpTextThisFrame('D4RK_HELP', false)
+                                AddTextEntry('D4RK_CAGE_ENTER', GetTranslation('enter_cage'))
+                                DisplayHelpTextThisFrame('D4RK_CAGE_ENTER', false)
 
                                 if IsControlJustPressed(0, Config.Keys.EnterCage) then
+                                    -- currentVehicle setzen damit ExitCage funktioniert
+                                    currentVehicle = vehicle
+                                    currentVehicleName = vehicleName
                                     EnterCage(vehicle, vehicleName)
                                 end
                             end
@@ -216,11 +247,11 @@ Citizen.CreateThread(function()
             end
         end
 
-        -- Exit cage check
-        if IsEntityAttached(playerPed) then
+        -- Aussteige-Check NUR wenn wirklich im Korb
+        if playerInCage then
             sleep = 0
-            AddTextEntry('D4RK_HELP', GetTranslation('exit_cage'))
-            DisplayHelpTextThisFrame('D4RK_HELP', false)
+            AddTextEntry('D4RK_CAGE_EXIT', GetTranslation('exit_cage'))
+            DisplayHelpTextThisFrame('D4RK_CAGE_EXIT', false)
 
             if IsControlJustPressed(0, Config.Keys.ExitCage) then
                 if currentVehicle then
@@ -241,9 +272,9 @@ AddEventHandler('onResourceStop', function(resourceName)
     for netId, _ in pairs(cageProps) do
         DeleteCageProp(netId)
     end
-    -- Detach player if in cage
-    local playerPed = PlayerPedId()
-    if IsEntityAttached(playerPed) then
+    if playerInCage then
+        local playerPed = PlayerPedId()
         DetachEntity(playerPed, true, false)
+        playerInCage = false
     end
 end)

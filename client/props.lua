@@ -1,5 +1,5 @@
 -- D4rk Smart Vehicle - Prop Management System (Hybrid)
--- Spawns and attaches props to vehicles (London Studios style)
+-- Spawns and attaches props to vehicles
 
 local spawnedProps = {}
 local propStates = {}
@@ -11,7 +11,8 @@ function SpawnVehicleProps(vehicle, vehicleName)
     local config = GetVehicleConfig(vehicleName)
     if not config or not config.props then return end
 
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    local netId = SafeGetNetId(vehicle)
+    if not netId then return end
 
     if not spawnedProps[netId] then
         spawnedProps[netId] = {}
@@ -142,7 +143,7 @@ function SpawnProp(vehicle, propConfig, vehicleName)
     return {
         entity = prop,
         config = propConfig,
-        attachBone = attachBone,          -- Numerischer Index
+        attachBone = attachBone,              -- Numerischer Index
         attachBoneName = propConfig.attachTo, -- String-Name für spinning.lua
         id = propConfig.id
     }
@@ -152,7 +153,8 @@ end
 -- PROP REMOVAL
 -- ============================================
 function RemoveVehicleProps(vehicle)
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    local netId = SafeGetNetId(vehicle)
+    if not netId then return end
 
     if spawnedProps[netId] then
         for _, propData in ipairs(spawnedProps[netId]) do
@@ -174,7 +176,8 @@ end
 -- PROP STATE MANAGEMENT
 -- ============================================
 function GetPropByID(vehicle, propId)
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    local netId = SafeGetNetId(vehicle)
+    if not netId then return end
     if not spawnedProps[netId] then return nil end
 
     for _, propData in ipairs(spawnedProps[netId]) do
@@ -187,14 +190,16 @@ function GetPropByID(vehicle, propId)
 end
 
 function GetPropState(vehicle, propId)
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    local netId = SafeGetNetId(vehicle)
+    if not netId then return end
     if not propStates[netId] then return nil end
 
     return propStates[netId][propId]
 end
 
 function SetPropState(vehicle, propId, state)
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    local netId = SafeGetNetId(vehicle)
+    if not netId then return end
     if not propStates[netId] then
         propStates[netId] = {}
     end
@@ -300,7 +305,8 @@ function UpdatePropControl(vehicle, propId, controlType, axis, amount)
     SetPropState(vehicle, propId, state)
 
     -- Sync to server
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    local netId = SafeGetNetId(vehicle)
+    if not netId then return end
     TriggerServerEvent('D4rk_Smart:SyncProp', netId, propId, state)
 end
 
@@ -317,7 +323,8 @@ function ToggleProp(vehicle, propId)
     SetPropState(vehicle, propId, state)
 
     -- Sync to server
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    local netId = SafeGetNetId(vehicle)
+    if not netId then return end
     TriggerServerEvent('D4rk_Smart:SyncProp', netId, propId, state)
 
     if Config.Debug then
@@ -338,7 +345,8 @@ CreateThread(function()
             local vehicleName = IsVehicleConfigured(vehicle)
 
             if vehicleName then
-                local netId = NetworkGetNetworkIdFromEntity(vehicle)
+                local netId = SafeGetNetId(vehicle)
+                if not netId then return end
 
                 -- Spawn props if not already spawned
                 if not spawnedProps[netId] then
@@ -348,11 +356,15 @@ CreateThread(function()
         end
 
         -- Cleanup deleted vehicles
+        local toClean = {}
         for netId, _ in pairs(spawnedProps) do
             local vehicle = NetworkGetEntityFromNetworkId(netId)
-            if not DoesEntityExist(vehicle) then
-                RemoveVehicleProps(vehicle)
+            if not vehicle or vehicle == 0 or not DoesEntityExist(vehicle) then
+                table.insert(toClean, netId)
             end
+        end
+        for _, netId in ipairs(toClean) do
+            RemoveVehicleProps(vehicle) -- oder wie die Cleanup-Funktion heißt
         end
     end
 end)
@@ -409,7 +421,8 @@ end)
 -- EXPORTS
 -- ============================================
 exports('GetVehicleProps', function(vehicle)
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    local netId = SafeGetNetId(vehicle)
+    if not netId then return end
     return spawnedProps[netId] or {}
 end)
 

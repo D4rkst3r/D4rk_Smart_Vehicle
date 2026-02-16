@@ -6,7 +6,8 @@ stabAnimating = {}   -- Animation lock per vehicle
 -- SPAWN STABILIZER PROPS
 -- ============================================
 function SpawnStabilizerProps(vehicle, vehicleName)
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    local netId = SafeGetNetId(vehicle)
+    if not netId then return end
     if stabProps[netId] then return end
 
     local config = GetVehicleConfig(vehicleName)
@@ -84,7 +85,8 @@ end
 -- ANIMATE STABILIZERS (smooth aus-/einfahren)
 -- ============================================
 function AnimateStabilizersProps(vehicle, vehicleName, deploy)
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    local netId = SafeGetNetId(vehicle)
+    if not netId then return end
     if not stabProps[netId] then
         SpawnStabilizerProps(vehicle, vehicleName)
     end
@@ -97,37 +99,59 @@ function AnimateStabilizersProps(vehicle, vehicleName, deploy)
     local stabConfig = config.stabilizers
     local maxExtension = stabConfig.maxExtension or 1.5
     local duration = stabConfig.animDuration or 2000
-    local liftHeight = stabConfig.liftHeight or 0.4 -- NEU: Wie hoch anheben (Meter)
-
-    -- Startposition merken
-    local startCoords = GetEntityCoords(vehicle)
-    local startHeading = GetEntityHeading(vehicle)
+    local liftHeight = stabConfig.liftHeight or 0.4
 
     stabAnimating[netId] = true
 
-    Citizen.CreateThread(function()
+    if deploy then
+        -- ===== AUSFAHREN =====
+        SetVehicleEngineOn(vehicle, false, true, true)
+        SetVehicleHandbrake(vehicle, true)
+
+        -- Original-Position JETZT speichern (vor dem Anheben!)
+        local origCoords = GetEntityCoords(vehicle)
+        local origHeading = GetEntityHeading(vehicle)
+
+        -- Stützen-Animation
         local startTime = GetGameTimer()
 
-        while GetGameTimer() - startTime < duration do
-            Wait(16)
+        Citizen.CreateThread(function()
+            while GetGameTimer() - startTime < duration do
+                Wait(16)
 
-            local progress = (GetGameTimer() - startTime) / duration
-            -- Ease in/out
-            progress = progress * progress * (3.0 - 2.0 * progress)
+                local progress = (GetGameTimer() - startTime) / duration
+                progress = progress * progress * (3.0 - 2.0 * progress)
 
-            -- ===== Stützen-Props bewegen =====
+                for i, propData in pairs(stabProps[netId]) do
+                    if propData and propData.entity and DoesEntityExist(propData.entity) then
+                        local stab = propData.config
+                        local baseOffset = stab.offset or vector3(0.0, 0.0, 0.0)
+                        local rotation = stab.rotation or vector3(0.0, 0.0, 0.0)
+                        local targetZ = baseOffset.z - (maxExtension * progress)
+
+                        local boneIdx = 0
+                        if stab.attachBone and stab.attachBone ~= '' then
+                            local idx = GetEntityBoneIndexByName(vehicle, stab.attachBone)
+                            if idx ~= -1 then boneIdx = idx end
+                        end
+
+                        DetachEntity(propData.entity, false, false)
+                        AttachEntityToEntity(
+                            propData.entity, vehicle, boneIdx,
+                            baseOffset.x, baseOffset.y, targetZ,
+                            rotation.x, rotation.y, rotation.z,
+                            false, true, true, false, 2, true
+                        )
+                    end
+                end
+            end
+
+            -- Finale Stützen-Position
             for i, propData in pairs(stabProps[netId]) do
                 if propData and propData.entity and DoesEntityExist(propData.entity) then
                     local stab = propData.config
                     local baseOffset = stab.offset or vector3(0.0, 0.0, 0.0)
                     local rotation = stab.rotation or vector3(0.0, 0.0, 0.0)
-
-                    local targetZ
-                    if deploy then
-                        targetZ = baseOffset.z - (maxExtension * progress)
-                    else
-                        targetZ = (baseOffset.z - maxExtension) + (maxExtension * progress)
-                    end
 
                     local boneIdx = 0
                     if stab.attachBone and stab.attachBone ~= '' then
@@ -138,83 +162,141 @@ function AnimateStabilizersProps(vehicle, vehicleName, deploy)
                     DetachEntity(propData.entity, false, false)
                     AttachEntityToEntity(
                         propData.entity, vehicle, boneIdx,
-                        baseOffset.x, baseOffset.y, targetZ,
+                        baseOffset.x, baseOffset.y, baseOffset.z - maxExtension,
                         rotation.x, rotation.y, rotation.z,
-                        false, true, true,
-                        false, 2, true
+                        false, true, true, false, 2, true
                     )
 
-                    propData.currentZ = targetZ
-                    propData.deployed = deploy
+                    propData.currentZ = baseOffset.z - maxExtension
+                    propData.deployed = true
                 end
             end
 
-            -- ===== NEU: Fahrzeug anheben/absenken =====
-            local currentLift
-            if deploy then
-                currentLift = liftHeight * progress
+            -- Anheben: Gravity aus → Position setzen → Freeze
+            SetEntityHasGravity(vehicle, false)
+            SetEntityVelocity(vehicle, 0.0, 0.0, 0.0)
+            FreezeEntityPosition(vehicle, false)
+            Wait(0)
+            SetEntityCoordsNoOffset(vehicle, origCoords.x, origCoords.y, origCoords.z + liftHeight, false, false, false)
+            SetEntityHeading(vehicle, origHeading)
+            Wait(0)
+            FreezeEntityPosition(vehicle, true)
+            SetEntityHasGravity(vehicle, true)
+
+            -- Original-Coords speichern für sauberes Absenken
+            if not stabProps[netId] then stabProps[netId] = {} end
+            stabProps[netId].origCoords = origCoords
+            stabProps[netId].origHeading = origHeading
+
+            if stabConfig.soundEffect then
+                PlaySoundEffect(stabConfig.soundEffect)
+            end
+
+            stabAnimating[netId] = false
+        end)
+    else
+        -- ===== EINFAHREN =====
+        Citizen.CreateThread(function()
+            -- Gespeicherte Original-Position nutzen (NICHT relativ rechnen!)
+            local origCoords = stabProps[netId] and stabProps[netId].origCoords
+            local origHeading = stabProps[netId] and stabProps[netId].origHeading
+
+            -- Absenken: Zurück auf Original-Position
+            if origCoords then
+                SetEntityHasGravity(vehicle, false)
+                SetEntityVelocity(vehicle, 0.0, 0.0, 0.0)
+                FreezeEntityPosition(vehicle, false)
+                Wait(0)
+                SetEntityCoordsNoOffset(vehicle, origCoords.x, origCoords.y, origCoords.z, false, false, false)
+                if origHeading then SetEntityHeading(vehicle, origHeading) end
+                Wait(0)
             else
-                currentLift = liftHeight * (1.0 - progress)
+                FreezeEntityPosition(vehicle, false)
+                Wait(0)
             end
 
-            SetEntityCoords(
-                vehicle,
-                startCoords.x,
-                startCoords.y,
-                startCoords.z + currentLift,
-                false, false, false, false
-            )
-            SetEntityHeading(vehicle, startHeading)
-        end
+            -- Gravity wieder an, Physik laufen lassen
+            SetEntityHasGravity(vehicle, true)
 
-        -- ===== Finale Position sicherstellen =====
-        for i, propData in pairs(stabProps[netId]) do
-            if propData and propData.entity and DoesEntityExist(propData.entity) then
-                local stab = propData.config
-                local baseOffset = stab.offset or vector3(0.0, 0.0, 0.0)
-                local rotation = stab.rotation or vector3(0.0, 0.0, 0.0)
-                local finalZ = deploy and (baseOffset.z - maxExtension) or baseOffset.z
+            -- Stützen-Animation zurückfahren
+            local startTime = GetGameTimer()
 
-                local boneIdx = 0
-                if stab.attachBone and stab.attachBone ~= '' then
-                    local idx = GetEntityBoneIndexByName(vehicle, stab.attachBone)
-                    if idx ~= -1 then boneIdx = idx end
+            while GetGameTimer() - startTime < duration do
+                Wait(16)
+
+                local progress = (GetGameTimer() - startTime) / duration
+                progress = progress * progress * (3.0 - 2.0 * progress)
+
+                for i, propData in pairs(stabProps[netId]) do
+                    if type(i) ~= 'number' then goto skipRetract end -- origCoords überspringen!
+                    if propData and propData.entity and DoesEntityExist(propData.entity) then
+                        local stab = propData.config
+                        local baseOffset = stab.offset or vector3(0.0, 0.0, 0.0)
+                        local rotation = stab.rotation or vector3(0.0, 0.0, 0.0)
+                        local targetZ = (baseOffset.z - maxExtension) + (maxExtension * progress)
+
+                        local boneIdx = 0
+                        if stab.attachBone and stab.attachBone ~= '' then
+                            local idx = GetEntityBoneIndexByName(vehicle, stab.attachBone)
+                            if idx ~= -1 then boneIdx = idx end
+                        end
+
+                        DetachEntity(propData.entity, false, false)
+                        AttachEntityToEntity(
+                            propData.entity, vehicle, boneIdx,
+                            baseOffset.x, baseOffset.y, targetZ,
+                            rotation.x, rotation.y, rotation.z,
+                            false, true, true, false, 2, true
+                        )
+                    end
+                    ::skipRetract::
                 end
-
-                DetachEntity(propData.entity, false, false)
-                AttachEntityToEntity(
-                    propData.entity, vehicle, boneIdx,
-                    baseOffset.x, baseOffset.y, finalZ,
-                    rotation.x, rotation.y, rotation.z,
-                    false, true, true,
-                    false, 2, true
-                )
-
-                propData.currentZ = finalZ
-                propData.deployed = deploy
             end
-        end
 
-        -- Finale Fahrzeug-Position
-        local finalLift = deploy and liftHeight or 0.0
-        SetEntityCoords(
-            vehicle,
-            startCoords.x,
-            startCoords.y,
-            startCoords.z + finalLift,
-            false, false, false, false
-        )
-        SetEntityHeading(vehicle, startHeading)
+            -- Finale Position (eingezogen)
+            for i, propData in pairs(stabProps[netId]) do
+                if type(i) ~= 'number' then goto skipFinal end
+                if propData and propData.entity and DoesEntityExist(propData.entity) then
+                    local stab = propData.config
+                    local baseOffset = stab.offset or vector3(0.0, 0.0, 0.0)
+                    local rotation = stab.rotation or vector3(0.0, 0.0, 0.0)
 
-        -- JETZT erst einfrieren (nach dem Anheben!)
-        FreezeEntityPosition(vehicle, deploy)
+                    local boneIdx = 0
+                    if stab.attachBone and stab.attachBone ~= '' then
+                        local idx = GetEntityBoneIndexByName(vehicle, stab.attachBone)
+                        if idx ~= -1 then boneIdx = idx end
+                    end
 
-        if stabConfig.soundEffect then
-            PlaySoundEffect(stabConfig.soundEffect)
-        end
+                    DetachEntity(propData.entity, false, false)
+                    AttachEntityToEntity(
+                        propData.entity, vehicle, boneIdx,
+                        baseOffset.x, baseOffset.y, baseOffset.z,
+                        rotation.x, rotation.y, rotation.z,
+                        false, true, true, false, 2, true
+                    )
 
-        stabAnimating[netId] = false
-    end)
+                    propData.currentZ = baseOffset.z
+                    propData.deployed = false
+                end
+                ::skipFinal::
+            end
+
+            -- Handbremse lösen
+            SetVehicleHandbrake(vehicle, false)
+
+            -- Gespeicherte Coords löschen
+            if stabProps[netId] then
+                stabProps[netId].origCoords = nil
+                stabProps[netId].origHeading = nil
+            end
+
+            if stabConfig.soundEffect then
+                PlaySoundEffect(stabConfig.soundEffect)
+            end
+
+            stabAnimating[netId] = false
+        end)
+    end
 end
 
 -- ============================================
@@ -226,7 +308,7 @@ Citizen.CreateThread(function()
         local toRemove = {}
         for netId, _ in pairs(stabProps) do
             local veh = NetworkGetEntityFromNetworkId(netId)
-            if not DoesEntityExist(veh) then
+            if not veh or veh == 0 or not DoesEntityExist(veh) then
                 table.insert(toRemove, netId)
             end
         end
