@@ -143,36 +143,37 @@ function HandleControls()
         for i, bone in ipairs(currentConfig.bones) do
             local delta = 0.0
 
-            -- Check control group specific inputs
+            -- Nutze IsDisabledControlPressed statt IsControlPressed
             if bone.controlGroup == 'turret' or i == 1 then
-                if IsControlPressed(0, Config.Keys.RotateLeft) then
+                if IsDisabledControlPressed(0, Config.Keys.RotateLeft) then
                     delta = -1.0
-                elseif IsControlPressed(0, Config.Keys.RotateRight) then
+                elseif IsDisabledControlPressed(0, Config.Keys.RotateRight) then
                     delta = 1.0
                 end
             end
 
             if bone.controlGroup == 'ladder' or bone.controlGroup == 'crane' or i == 2 then
-                if IsControlPressed(0, Config.Keys.IncreaseControl) then
+                if IsDisabledControlPressed(0, Config.Keys.IncreaseControl) then
                     delta = 1.0
-                elseif IsControlPressed(0, Config.Keys.DecreaseControl) then
+                elseif IsDisabledControlPressed(0, Config.Keys.DecreaseControl) then
                     delta = -1.0
                 end
             end
 
-            -- Additional controls for more bones
+            -- Bone 3 & 4 (mit Disabled-Check)
             if i == 3 then
-                if IsControlPressed(0, 85) then     -- Q
+                if IsDisabledControlPressed(0, 85) then     -- Q
                     delta = 1.0
-                elseif IsControlPressed(0, 48) then -- Z
+                elseif IsDisabledControlPressed(0, 48) then -- Z
                     delta = -1.0
                 end
             end
 
             if i == 4 then
-                if IsControlPressed(0, 21) and IsControlPressed(0, 85) then     -- Shift + Q
+                -- Hier auch die Kombinationen prüfen
+                if IsDisabledControlPressed(0, 21) and IsDisabledControlPressed(0, 85) then     -- Shift + Q
                     delta = 1.0
-                elseif IsControlPressed(0, 21) and IsControlPressed(0, 48) then -- Shift + Z
+                elseif IsDisabledControlPressed(0, 21) and IsDisabledControlPressed(0, 48) then -- Shift + Z
                     delta = -1.0
                 end
             end
@@ -184,21 +185,21 @@ function HandleControls()
         end
     end
 
-    -- Handle PROP controls (NEW!)
+    -- Handle PROP controls (Optimiert!)
     if currentConfig.props then
         for _, propConfig in ipairs(currentConfig.props) do
             if propConfig.controls then
                 for _, control in ipairs(propConfig.controls) do
-                    -- Continuous movement (move/rotate)
-                    if IsControlPressed(0, control.control) then
+                    -- Nutze IsDisabledControlPressed
+                    if IsDisabledControlPressed(0, control.control) then
                         if control.movementType == "move" or control.movementType == "rotate" then
                             UpdatePropControl(currentVehicle, propConfig.id, control.movementType, control.axis,
                                 control.movementAmount)
                         end
                     end
 
-                    -- Toggle actions (toggle/spin)
-                    if IsControlJustPressed(0, control.control) then
+                    -- Nutze IsDisabledControlJustPressed
+                    if IsDisabledControlJustPressed(0, control.control) then
                         if control.movementType == "toggle" then
                             ToggleProp(currentVehicle, propConfig.id)
                         elseif control.movementType == "spin" then
@@ -210,8 +211,8 @@ function HandleControls()
         end
     end
 
-    -- Stabilizers toggle
-    if IsControlJustPressed(0, Config.Keys.StabilizersToggle) then
+    -- Stabilizers toggle (Ebenfalls Disabled Version)
+    if IsDisabledControlJustPressed(0, Config.Keys.StabilizersToggle) then
         if currentConfig.stabilizers and currentConfig.stabilizers.enabled then
             ToggleStabilizers(currentVehicle)
         end
