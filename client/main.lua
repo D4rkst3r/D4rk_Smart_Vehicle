@@ -585,8 +585,10 @@ function CloseControlPanel()
 
     -- Notify server
     if currentVehicle then
-        local netId = NetworkGetNetworkIdFromEntity(currentVehicle)
-        TriggerServerEvent('D4rk_Smart:StopControl', netId)
+        local netId = SafeGetNetId(currentVehicle)
+        if netId then
+            TriggerServerEvent('D4rk_Smart:StopControl', netId)
+        end
     end
 
     SetNuiFocus(false, false)

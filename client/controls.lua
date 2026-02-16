@@ -44,7 +44,10 @@ function StopControl()
 
     -- Notify server
     if currentVehicle then
-        local netId = NetworkGetNetworkIdFromEntity(currentVehicle)
+        local netId = SafeGetNetId(currentVehicle)
+        if netId then
+            TriggerServerEvent('D4rk_Smart:StopControl', netId)
+        end
         TriggerServerEvent('D4rk_Smart:StopControl', netId)
     end
 
@@ -249,7 +252,10 @@ function DeactivateRemote()
 
     -- Notify server
     if currentVehicle then
-        local netId = NetworkGetNetworkIdFromEntity(currentVehicle)
+        local netId = SafeGetNetId(currentVehicle)
+        if netId then
+            TriggerServerEvent('D4rk_Smart:StopControl', netId)
+        end
         TriggerServerEvent('D4rk_Smart:StopControl', netId)
     end
 
