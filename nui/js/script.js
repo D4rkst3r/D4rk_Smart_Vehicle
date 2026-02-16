@@ -5,6 +5,7 @@ let stabilizersDeployed = false;
 let waterActive = false;
 let inCage = false;
 let escHandlerEnabled = false;  // Verhindert Auto-Fire
+let escPressCount = 0;  // Zählt ESC Drücke
 
 // Check if jQuery is loaded
 if (typeof $ === 'undefined') {
@@ -109,11 +110,11 @@ function openPanel(vehicle) {
         // Send ready message
         $.post('https://D4rk_Smart_Vehicle/panelReady', JSON.stringify({}));
         
-        // Aktiviere ESC Handler nach 500ms (verhindert FiveM Auto-Fire Bug)
+        // Aktiviere ESC Handler nach 1000ms (verhindert FiveM Auto-Fire Bug)
         setTimeout(() => {
             escHandlerEnabled = true;
             console.log('✅ ESC Handler aktiviert');
-        }, 500);
+        }, 1000);  // 1 Sekunde statt 500ms!
         
     } catch (error) {
         console.error('❌ Error in openPanel:', error);
@@ -371,12 +372,15 @@ function resetAll() {
 // ============================================
 // KEYBOARD HANDLERS
 // ============================================
+// ESC Handler DEAKTIVIERT wegen FiveM Auto-Fire Bug
+// Nutze X Button zum Schließen!
+
+/*
 document.addEventListener('keydown', function(e) {
-    // ESC zum Schließen - nur wenn Panel offen ist UND Handler aktiviert
+    // DEAKTIVIERT - zu viele false positives
     if (e.key === 'Escape' || e.keyCode === 27) {
         const panel = document.getElementById('controlPanel');
         
-        // WICHTIG: Nur wenn escHandlerEnabled = true (verhindert FiveM Auto-Fire Bug)
         if (escHandlerEnabled && panel && panel.style.display === 'block') {
             console.log('ESC pressed in NUI - closing panel');
             e.preventDefault();
@@ -386,6 +390,7 @@ document.addEventListener('keydown', function(e) {
         }
     }
 });
+*/
 
 // Prevent right click
 document.addEventListener('contextmenu', event => event.preventDefault());

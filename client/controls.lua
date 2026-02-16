@@ -190,11 +190,19 @@ function ActivateRemote(vehicle, vehicleName)
         return
     end
     
-    remoteActive = true
+    print('🔵 Aktiviere Fernsteuerung')
     
-    -- Öffne Panel (ohne StartControl - das kommt später)
-    OpenControlPanel(vehicle, vehicleName)
+    remoteActive = true
+    currentVehicle = vehicle
+    currentVehicleName = vehicleName
+    currentConfig = GetVehicleConfig(vehicleName)
     controlMode = 'remote'
+    
+    -- Initialize state
+    InitializeVehicleState(vehicle, vehicleName)
+    
+    -- Zeige NUR das Compact HUD (nicht das große Panel!)
+    ShowCompactHud()
     
     ShowNotification(GetTranslation('remote_activated'), 'success')
 end
@@ -202,8 +210,17 @@ end
 function DeactivateRemote()
     if not remoteActive then return end
     
+    print('🔵 Deaktiviere Fernsteuerung')
+    
     remoteActive = false
-    StopControl()
+    
+    -- Schließe Compact HUD (nicht das Panel!)
+    HideCompactHud()
+    
+    currentVehicle = nil
+    currentVehicleName = nil
+    currentConfig = nil
+    controlMode = nil
     
     ShowNotification(GetTranslation('remote_deactivated'), 'info')
 end
@@ -269,7 +286,7 @@ CreateThread(function()
         end
         
         -- Remote control
-        if not inVehicle and Config.UseRemoteControl and not activeControl and not remoteActive then
+        if not inVehicle and Config.UseRemoteControl and not activeControl and not remoteActive and not menuOpen then
             local vehicles = GetGamePool('CVehicle')
             local closestVehicle = nil
             local closestDistance = Config.MaxRemoteDistance

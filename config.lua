@@ -45,7 +45,7 @@ Config.Keys = {
 -- VEHICLES CONFIGURATION
 -- ============================================
 Config.Vehicles = {
-
+    
     -- ==========================================
     -- FIRE DEPARTMENT - LADDER TRUCK (Advanced)
     -- ==========================================
@@ -53,7 +53,7 @@ Config.Vehicles = {
         type = 'ladder',
         label = 'Feuerwehr Drehleiter',
         description = 'Drehleiter mit Rettungskorb und Wasserwerfer',
-
+        
         -- Bone Configuration
         bones = {
             {
@@ -103,22 +103,22 @@ Config.Vehicles = {
                 controlGroup = 'basket'
             }
         },
-
+        
         -- Stabilizers (Stützen)
         stabilizers = {
             enabled = true,
             required = false, -- Empfohlen aber nicht Pflicht
             bones = {
-                { name = 'misc_e', side = 'front_left',  offset = vector3(-1.5, 2.0, -0.8) },
-                { name = 'misc_f', side = 'front_right', offset = vector3(1.5, 2.0, -0.8) },
-                { name = 'misc_g', side = 'rear_left',   offset = vector3(-1.5, -2.0, -0.8) },
-                { name = 'misc_h', side = 'rear_right',  offset = vector3(1.5, -2.0, -0.8) }
+                {name = 'misc_e', side = 'front_left', offset = vector3(-1.5, 2.0, -0.8)},
+                {name = 'misc_f', side = 'front_right', offset = vector3(1.5, 2.0, -0.8)},
+                {name = 'misc_g', side = 'rear_left', offset = vector3(-1.5, -2.0, -0.8)},
+                {name = 'misc_h', side = 'rear_right', offset = vector3(1.5, -2.0, -0.8)}
             },
             speed = 0.2,
             maxExtension = 1.5,
             soundEffect = 'stabilizer'
         },
-
+        
         -- Cage/Basket System
         cage = {
             enabled = true,
@@ -129,11 +129,11 @@ Config.Vehicles = {
             canControl = true, -- Kann aus Korb steuern
             maxOccupants = 2
         },
-
+        
         -- Water Monitor (Wasserwerfer)
         waterMonitor = {
             enabled = true,
-            bone = 'weapon_1a',
+            bone = 'misc_d',
             offset = vector3(0.0, 1.0, 0.3),
             rotation = vector3(0.0, 0.0, 0.0),
             particleEffect = 'core',
@@ -144,7 +144,7 @@ Config.Vehicles = {
             rotationSpeed = 0.3,
             soundEffect = 'water_cannon'
         },
-
+        
         -- Collision Objects (Begehbare Leiter)
         collision = {
             enabled = true,
@@ -158,7 +158,7 @@ Config.Vehicles = {
                 }
             }
         },
-
+        
         -- UI Settings
         ui = {
             showSpeed = true,
@@ -167,7 +167,7 @@ Config.Vehicles = {
             theme = 'fire' -- fire, police, utility
         }
     },
-
+    
     -- ==========================================
     -- CRANE TRUCK (Advanced)
     -- ==========================================
@@ -175,7 +175,7 @@ Config.Vehicles = {
         type = 'crane',
         label = 'Schwerer Abschleppkran',
         description = 'Abschlepp-LKW mit drehbarem Kran',
-
+        
         bones = {
             {
                 name = 'misc_a',
@@ -225,37 +225,37 @@ Config.Vehicles = {
                 soundEffect = 'winch'
             }
         },
-
+        
         stabilizers = {
             enabled = true,
             required = false,
             bones = {
-                { name = 'misc_e', side = 'left',  offset = vector3(-1.2, 0.0, -0.6) },
-                { name = 'misc_f', side = 'right', offset = vector3(1.2, 0.0, -0.6) }
+                {name = 'misc_e', side = 'left', offset = vector3(-1.2, 0.0, -0.6)},
+                {name = 'misc_f', side = 'right', offset = vector3(1.2, 0.0, -0.6)}
             },
             speed = 0.2,
             maxExtension = 1.2
         },
-
+        
         cage = {
             enabled = false
         },
-
+        
         waterMonitor = {
             enabled = false
         },
-
+        
         collision = {
             enabled = false
         },
-
+        
         ui = {
             showSpeed = true,
             showAngle = true,
             theme = 'utility'
         }
     },
-
+    
     -- ==========================================
     -- TOWER/PLATFORM TRUCK
     -- ==========================================
@@ -263,7 +263,7 @@ Config.Vehicles = {
         type = 'platform',
         label = 'Hubrettungsfahrzeug',
         description = 'Gelenkarm-Hubarbeitsbühne',
-
+        
         bones = {
             {
                 name = 'platform_base',
@@ -323,20 +323,20 @@ Config.Vehicles = {
                 controlGroup = 'basket'
             }
         },
-
+        
         stabilizers = {
             enabled = true,
             required = true,
             bones = {
-                { name = 'stabilizer_fl', side = 'front_left',  offset = vector3(-1.8, 2.5, -0.9) },
-                { name = 'stabilizer_fr', side = 'front_right', offset = vector3(1.8, 2.5, -0.9) },
-                { name = 'stabilizer_rl', side = 'rear_left',   offset = vector3(-1.8, -2.5, -0.9) },
-                { name = 'stabilizer_rr', side = 'rear_right',  offset = vector3(1.8, -2.5, -0.9) }
+                {name = 'stabilizer_fl', side = 'front_left', offset = vector3(-1.8, 2.5, -0.9)},
+                {name = 'stabilizer_fr', side = 'front_right', offset = vector3(1.8, 2.5, -0.9)},
+                {name = 'stabilizer_rl', side = 'rear_left', offset = vector3(-1.8, -2.5, -0.9)},
+                {name = 'stabilizer_rr', side = 'rear_right', offset = vector3(1.8, -2.5, -0.9)}
             },
             speed = 0.18,
             maxExtension = 2.0
         },
-
+        
         cage = {
             enabled = true,
             bone = 'platform_basket',
@@ -346,15 +346,15 @@ Config.Vehicles = {
             canControl = true,
             maxOccupants = 2
         },
-
+        
         waterMonitor = {
             enabled = false
         },
-
+        
         collision = {
             enabled = false
         },
-
+        
         ui = {
             showSpeed = true,
             showAngle = true,
@@ -362,7 +362,7 @@ Config.Vehicles = {
             theme = 'fire'
         }
     },
-
+    
     -- ==========================================
     -- UTILITY BUCKET TRUCK
     -- ==========================================
@@ -370,7 +370,7 @@ Config.Vehicles = {
         type = 'utility',
         label = 'Service Hubarbeitsbühne',
         description = 'Wartungsfahrzeug mit Arbeitskorb',
-
+        
         bones = {
             {
                 name = 'misc_a',
@@ -407,18 +407,18 @@ Config.Vehicles = {
                 controlGroup = 'basket'
             }
         },
-
+        
         stabilizers = {
             enabled = true,
             required = false,
             bones = {
-                { name = 'misc_d', side = 'left',  offset = vector3(-1.0, 0.0, -0.5) },
-                { name = 'misc_e', side = 'right', offset = vector3(1.0, 0.0, -0.5) }
+                {name = 'misc_d', side = 'left', offset = vector3(-1.0, 0.0, -0.5)},
+                {name = 'misc_e', side = 'right', offset = vector3(1.0, 0.0, -0.5)}
             },
             speed = 0.2,
             maxExtension = 1.0
         },
-
+        
         cage = {
             enabled = true,
             bone = 'misc_c',
@@ -428,7 +428,7 @@ Config.Vehicles = {
             canControl = true,
             maxOccupants = 1
         },
-
+        
         ui = {
             theme = 'utility'
         }
@@ -470,20 +470,20 @@ Config.Translations = {
         ['open_menu'] = 'Drücke ~INPUT_CONTEXT~ für Steuerung',
         ['open_remote'] = 'Drücke ~INPUT_SELECT_CHARACTER_TREVOR~ für Fernbedienung',
         ['menu_title'] = 'Fahrzeugsteuerung',
-
+        
         -- Controls
         ['control_active'] = 'Steuerung aktiv',
         ['control_stopped'] = 'Steuerung beendet',
         ['too_far'] = 'Zu weit entfernt vom Fahrzeug',
         ['already_controlled'] = 'Fahrzeug wird bereits gesteuert',
-
+        
         -- Stabilizers
         ['stabilizers_deployed'] = 'Stützen ausgefahren',
         ['stabilizers_retracted'] = 'Stützen eingefahren',
         ['stabilizers_required'] = 'Stützen müssen ausgefahren sein',
         ['stabilizers_deploying'] = 'Stützen werden ausgefahren...',
         ['stabilizers_retracting'] = 'Stützen werden eingefahren...',
-
+        
         -- Cage
         ['cage_enter'] = 'Drücke ~INPUT_CONTEXT~ um in Korb zu steigen',
         ['cage_exit'] = 'Drücke ~INPUT_VEH_EXIT~ um Korb zu verlassen',
@@ -491,16 +491,16 @@ Config.Translations = {
         ['cage_exited'] = 'Rettungskorb verlassen',
         ['cage_full'] = 'Korb ist voll',
         ['cage_too_far'] = 'Korb ist zu weit entfernt',
-
+        
         -- Water
         ['water_activated'] = 'Wasserwerfer aktiviert',
         ['water_deactivated'] = 'Wasserwerfer deaktiviert',
         ['water_toggle'] = 'Drücke ~INPUT_DETONATE~ um Wasserwerfer zu schalten',
-
+        
         -- Remote
         ['remote_activated'] = 'Fernbedienung aktiv',
         ['remote_deactivated'] = 'Fernbedienung deaktiviert',
-
+        
         -- Status
         ['speed'] = 'Geschwindigkeit',
         ['angle'] = 'Winkel',

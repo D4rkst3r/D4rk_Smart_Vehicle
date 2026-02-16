@@ -554,3 +554,15 @@ RegisterCommand('testpanel', function()
     print('✅ Fahrzeug gefunden: ' .. vehicleName)
     OpenControlPanel(vehicle, vehicleName)
 end, false)
+
+-- ============================================
+-- RESET COMMAND (für debugging)
+-- ============================================
+RegisterCommand('resetmenu', function()
+    print('🔄 Reset Menu State')
+    menuOpen = false
+    remoteActive = false
+    CloseControlPanel()
+    HideCompactHud()
+    print('✅ Menu zurückgesetzt')
+end, false)
