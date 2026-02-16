@@ -8,6 +8,8 @@ controlActive = false
 controlMode = nil
 menuOpen = false     -- GLOBAL: Sichtbar in allen Dateien
 remoteActive = false -- GLOBAL: Sichtbar in allen Dateien
+local isResetting = false
+local lastSoundTime = {}
 
 -- ============================================
 -- HELPERS
@@ -267,7 +269,6 @@ function ApplyBoneControl(vehicle, bone, value)
     local state = GetVehicleState(vehicle)
     if not state then return end
 
-    -- Finde den Index dieses Bones in der Config
     local boneIndex = nil
     for i, b in ipairs(state.config.bones) do
         if b == bone or (b.name == bone.name and b.label == bone.label) then
@@ -277,17 +278,24 @@ function ApplyBoneControl(vehicle, bone, value)
     end
     if not boneIndex then return end
 
-    -- Prop neu-attachen mit neuem Wert
+    -- Prop neu-attachen
     if spawnedBoneProps[netId] and spawnedBoneProps[netId][boneIndex] then
         AttachBoneProp(vehicle, netId, boneIndex, bone, value)
     end
 
-    -- Kinder-Props aktualisieren (die an diesem Prop hängen)
+    -- Kinder-Props aktualisieren
     UpdateChildProps(vehicle, netId, boneIndex, state)
 
-    -- Sound abspielen
+    -- Sound NUR wenn sich Wert ändert + Cooldown 500ms
     if bone.soundEffect and Config.SoundEffects and Config.SoundEffects[bone.soundEffect] then
-        PlaySoundEffect(bone.soundEffect)
+        local key = netId .. '_' .. boneIndex
+        local now = GetGameTimer()
+        local lastVal = lastSoundTime[key]
+
+        if not lastVal or (now - lastVal) > 500 then
+            lastSoundTime[key] = now
+            PlaySoundEffect(bone.soundEffect)
+        end
     end
 end
 
@@ -573,15 +581,20 @@ end
 -- RESET
 -- ============================================
 function ResetAllControls(vehicle)
+    if isResetting then return end
+    isResetting = true
+
     local state = GetVehicleState(vehicle)
-    if not state then return end
+    if not state then
+        isResetting = false
+        return
+    end
     local netId = NetworkGetNetworkIdFromEntity(vehicle)
 
     for i, bone in ipairs(state.config.bones) do
         local defaultValue = bone.default or bone.min or 0.0
         state.controlValues[i] = defaultValue
 
-        -- Prop zurück an Default-Position
         if spawnedBoneProps[netId] and spawnedBoneProps[netId][i] then
             AttachBoneProp(vehicle, netId, i, bone, defaultValue)
         end
@@ -595,6 +608,11 @@ function ResetAllControls(vehicle)
 
     TriggerServerEvent('D4rk_Smart:ResetAll', netId)
     ShowNotification('Alle Kontrollen zurückgesetzt', 'info')
+
+    -- Flag nach kurzer Pause zurücksetzen
+    Citizen.SetTimeout(500, function()
+        isResetting = false
+    end)
 end
 
 -- ============================================

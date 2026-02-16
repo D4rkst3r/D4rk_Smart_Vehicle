@@ -184,7 +184,7 @@ Citizen.CreateThread(function()
         local sleep = 500
         local playerPed = PlayerPedId()
 
-        if not IsPedInAnyVehicle(playerPed, false) and not IsEntityAttachedToAnyEntity(playerPed) then
+        if not IsPedInAnyVehicle(playerPed, false) and not IsEntityAttached(playerPed) then
             local playerCoords = GetEntityCoords(playerPed)
             local vehicles = GetGamePool('CVehicle')
 
@@ -218,7 +218,7 @@ Citizen.CreateThread(function()
         end
 
         -- Exit cage check
-        if IsEntityAttachedToAnyEntity(playerPed) then
+        if IsEntityAttached(playerPed) then
             sleep = 0
             BeginTextCommandDisplayHelp('STRING')
             AddTextComponentSubstringPlayerName(GetTranslation('exit_cage'))
@@ -245,7 +245,7 @@ AddEventHandler('onResourceStop', function(resourceName)
     end
     -- Detach player if in cage
     local playerPed = PlayerPedId()
-    if IsEntityAttachedToAnyEntity(playerPed) then
+    if IsEntityAttached(playerPed) then
         DetachEntity(playerPed, true, false)
     end
 end)

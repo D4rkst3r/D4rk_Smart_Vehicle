@@ -95,26 +95,33 @@ end
 function ToggleWater(vehicle, vehicleName)
     local netId = NetworkGetNetworkIdFromEntity(vehicle)
 
+    -- NEU: Saubere Prüfung
     if waterActive[netId] then
         StopWater(netId)
         ShowNotification('Wasserwerfer AUS', 'info')
-        -- Sync AUS
         TriggerServerEvent('D4rk_Smart:SyncWater', netId, false)
     else
+        -- Doppelstart verhindern
+        if waterParticles[netId] then
+            StopWater(netId)
+        end
         StartWater(vehicle, vehicleName, netId)
         ShowNotification('Wasserwerfer AN', 'success')
-        -- Sync AN
         TriggerServerEvent('D4rk_Smart:SyncWater', netId, true)
     end
 end
 
 function StartWater(vehicle, vehicleName, netId)
-    -- Spawn prop if needed
+    -- NEU: Schon aktiv? Erst stoppen
+    if waterActive[netId] then
+        StopWater(netId)
+        Wait(100)
+    end
+
     local waterData = waterProps[netId] or SpawnWaterProp(vehicle, vehicleName)
     if not waterData then return end
 
     waterActive[netId] = true
-
     local water = waterData.config
 
     -- Get the entity to emit particles from
