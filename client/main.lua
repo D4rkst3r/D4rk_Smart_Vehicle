@@ -1,11 +1,12 @@
 -- D4rk Smart Vehicle - Client Main (Advanced)
-local currentVehicle = nil
-local currentVehicleName = nil
-local currentConfig = nil
-local vehicleStates = {}
-local controlActive = false
-local controlMode = nil
-local menuOpen = false -- WICHTIG: Trackt ob Panel offen ist
+currentVehicle = nil
+currentVehicleName = nil
+currentConfig = nil
+vehicleStates = {}
+controlActive = false
+controlMode = nil
+menuOpen = false     -- GLOBAL: Sichtbar in allen Dateien
+remoteActive = false -- GLOBAL: Sichtbar in allen Dateien
 
 -- Helpers
 function GetTranslation(key)
@@ -311,8 +312,35 @@ function OpenControlPanel(vehicle, vehicleName)
     -- Set menu open flag
     menuOpen = true
 
-    -- Open NUI
-    SetNuiFocus(true, true)
+    -- Starte Control Logic
+    local playerPed = PlayerPedId()
+    local inVehicle = IsPedInAnyVehicle(playerPed, false)
+    local mode = inVehicle and 'inside' or 'standing'
+
+    -- Setze Control Variablen ohne StartControl zu rufen (das würde HUD öffnen)
+    currentVehicle = vehicle
+    currentVehicleName = vehicleName
+    currentConfig = GetVehicleConfig(vehicleName)
+    controlMode = mode
+    controlActive = true
+
+    -- Notify server
+    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    TriggerServerEvent('D4rk_Smart:StartControl', netId)
+
+    -- Starte Control Thread
+    CreateThread(ControlThread)
+
+    -- Open NUI - NUR Maus Focus, Keyboard geht an FiveM!
+    SetNuiFocus(true, true)    -- false = Keyboard funktioniert in FiveM!
+    SetNuiFocusKeepInput(true) -- Erlaubt Input trotz NUI
+
+    CreateThread(function()
+        while menuOpen do
+            Wait(0)
+            ShowCursorThisFrame() -- Force Maus sichtbar
+        end
+    end)
 
     SendNUIMessage({
         action = 'openPanel',
@@ -338,7 +366,7 @@ function OpenControlPanel(vehicle, vehicleName)
     -- Update mode
     SendNUIMessage({
         action = 'updateMode',
-        mode = controlMode or 'inside'
+        mode = mode
     })
 end
 
@@ -351,7 +379,17 @@ function CloseControlPanel()
     print('❌ CLOSING PANEL')
 
     menuOpen = false
+    controlActive = false -- Stoppe Control Thread
+
+    -- Notify server
+    if currentVehicle then
+        local netId = NetworkGetNetworkIdFromEntity(currentVehicle)
+        TriggerServerEvent('D4rk_Smart:StopControl', netId)
+    end
+
     SetNuiFocus(false, false)
+    SetNuiFocusKeepInput(false)
+
     SendNUIMessage({
         action = 'closePanel'
     })
