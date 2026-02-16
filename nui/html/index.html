@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D4rk Smart Vehicle</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <!-- Main Control Panel -->
+    <div id="controlPanel" class="panel hidden" style="display: none;">
+        <div class="panel-header">
+            <div class="vehicle-info">
+                <h1 id="vehicleLabel">Fahrzeug Steuerung</h1>
+                <p id="vehicleDescription"></p>
+            </div>
+            <div class="close-btn" onclick="closePanel()">✕</div>
+        </div>
+
+        <div class="panel-body">
+            <!-- Status Display -->
+            <div class="status-section">
+                <div class="status-item">
+                    <span class="status-label">Modus:</span>
+                    <span class="status-value" id="controlMode">Im Fahrzeug</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Stützen:</span>
+                    <span class="status-value" id="stabilizersStatus">Eingefahren</span>
+                </div>
+                <div class="status-item" id="cageStatus" style="display: none;">
+                    <span class="status-label">Korb:</span>
+                    <span class="status-value" id="cageOccupants">0/2</span>
+                </div>
+            </div>
+
+            <!-- Control Groups -->
+            <div id="controlGroups" class="control-groups">
+                <!-- Dynamically populated -->
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+                <button id="stabilizersBtn" class="action-btn" onclick="toggleStabilizers()">
+                    <span class="btn-icon">⚙️</span>
+                    <span>Stützen</span>
+                </button>
+                <button id="waterBtn" class="action-btn hidden" onclick="toggleWater()">
+                    <span class="btn-icon">💧</span>
+                    <span>Wasserwerfer</span>
+                </button>
+                <button id="cageBtn" class="action-btn hidden" onclick="toggleCage()">
+                    <span class="btn-icon">🧍</span>
+                    <span>Korb</span>
+                </button>
+                <button class="action-btn reset" onclick="resetAll()">
+                    <span class="btn-icon">🔄</span>
+                    <span>Alles Zurücksetzen</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="panel-footer">
+            <div class="controls-hint">
+                <span>🎮 Pfeiltasten zum Steuern</span>
+                <span>|</span>
+                <span>ESC zum Schließen</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Compact HUD (during control) -->
+    <div id="compactHud" class="compact-hud hidden" style="display: none;">
+        <div class="hud-header">
+            <span id="hudVehicleName">Fahrzeug</span>
+            <span id="hudControlMode" class="mode-badge">AKTIV</span>
+        </div>
+        <div class="hud-controls" id="hudControls">
+            <!-- Dynamically populated with active controls -->
+        </div>
+        <div class="hud-hints">
+            <span>↑↓←→ Steuern</span>
+            <span>G Stützen</span>
+            <span>E Menü</span>
+        </div>
+    </div>
+
+    <!-- Cage Prompt -->
+    <div id="cagePrompt" class="prompt hidden" style="display: none;">
+        <div class="prompt-content">
+            <span class="prompt-icon">🧍</span>
+            <span class="prompt-text">Drücke E um in den Korb zu steigen</span>
+        </div>
+    </div>
+
+    <!-- Notification System -->
+    <div id="notifications"></div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="../js/script.js"></script>
+</body>
+</html>
