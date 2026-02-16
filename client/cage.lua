@@ -287,6 +287,69 @@ CreateThread(function()
 end)
 
 -- ============================================
+-- COMMANDS
+-- ============================================
+RegisterCommand('entercage', function()
+    if inCage then
+        ShowNotification('Du bist bereits in einem Korb', 'warning')
+        return
+    end
+    
+    local playerPed = PlayerPedId()
+    local playerCoords = GetEntityCoords(playerPed)
+    
+    -- Find closest vehicle with cage
+    local vehicles = GetGamePool('CVehicle')
+    local closestVehicle = nil
+    local closestDistance = 999999
+    local closestConfig = nil
+    
+    for _, vehicle in ipairs(vehicles) do
+        local vehicleName = IsVehicleConfigured(vehicle)
+        if vehicleName then
+            local config = GetVehicleConfig(vehicleName)
+            
+            if config.cage and config.cage.enabled then
+                local boneIndex = GetBoneIndex(vehicle, config.cage.bone)
+                if boneIndex ~= -1 then
+                    local boneCoords = GetWorldPositionOfEntityBone(vehicle, boneIndex)
+                    local distance = #(playerCoords - boneCoords)
+                    
+                    if distance < config.cage.enterDistance and distance < closestDistance then
+                        closestVehicle = vehicle
+                        closestDistance = distance
+                        closestConfig = config.cage
+                    end
+                end
+            end
+        end
+    end
+    
+    if closestVehicle then
+        local vehicleName = IsVehicleConfigured(closestVehicle)
+        EnterCage(closestVehicle, closestConfig)
+        
+        if Config.Debug then
+            print(string.format('^2[Cage] Entered cage via command: %s^7', vehicleName))
+        end
+    else
+        ShowNotification('Kein Korb in der Nähe', 'warning')
+    end
+end, false)
+
+RegisterCommand('exitcage', function()
+    if inCage then
+        ExitCage()
+        
+        if Config.Debug then
+            print('^3[Cage] Exited cage via command^7')
+        end
+    else
+        ShowNotification('Du bist nicht in einem Korb', 'warning')
+    end
+end, false)
+
+-- ============================================
 -- EXPORTS
 -- ============================================
 exports('IsInCage', function()

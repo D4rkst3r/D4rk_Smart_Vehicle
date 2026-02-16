@@ -57,7 +57,7 @@ Config.Vehicles = {
         -- Bone Configuration
         bones = {
             {
-                name = 'turret_1base',
+                name = 'misc_a',
                 label = 'Turm Rotation',
                 type = 'rotation',
                 axis = 'z',
@@ -104,6 +104,39 @@ Config.Vehicles = {
             }
         },
 
+        -- Props System (London Studios Style) - NEW!
+        props = {
+            -- Example: Extra warning beacon
+            {
+                id = "warning_beacon",
+                model = "prop_phonebox_01c", -- Example prop
+                attachTo = "vehicle",        -- or bone name
+                boneIndex = "bodyshell",     -- Optional: attach to specific bone
+                defaultOffset = vector3(0.0, 2.0, 1.5),
+                defaultRotation = vector3(0.0, 0.0, 0.0),
+                offset = vector3(0.0, 2.0, 1.5),
+                rotation = vector3(0.0, 0.0, 0.0),
+                disableCollisions = true,
+                toggleOffInitially = false, -- Start visible
+
+                -- Controls for this prop
+                controls = {
+                    {
+                        control = 104,          -- H key
+                        movementType = "toggle" -- Toggle visibility
+                    },
+                    {
+                        control = 105,         -- I key
+                        movementType = "spin", -- Continuous spinning
+                        axis = 3,              -- Z-axis
+                        movementAmount = 1.0,
+                        movementSpeed = 50,    -- 50ms per rotation
+                        removeSmoke = false
+                    }
+                }
+            }
+        },
+
         -- Stabilizers (Stützen)
         stabilizers = {
             enabled = true,
@@ -143,6 +176,47 @@ Config.Vehicles = {
             canRotate = true,
             rotationSpeed = 0.3,
             soundEffect = 'water_cannon'
+        },
+
+        -- Spotlights (NEW!)
+        spotlight = {
+            enabled = true,
+            control = { 0, 101 }, -- H key
+            locations = {
+                ["misc_d"] = {    -- Cage/basket
+                    {
+                        directionOffSet = vector3(0.0, 10.0, 0.5),
+                        color = { 255, 255, 255 }, -- RGB white
+                        distance = 70.0,
+                        brightness = 70.0,
+                        hardness = 2.3,
+                        radius = 25.0,
+                        falloff = 25.0
+                    }
+                },
+                ["vehicle"] = { -- Front of vehicle
+                    {
+                        directionOffSet = vector3(0.0, 10.0, 0.0),
+                        color = { 255, 255, 255 },
+                        distance = 50.0,
+                        brightness = 60.0,
+                        hardness = 2.0,
+                        radius = 20.0,
+                        falloff = 20.0
+                    }
+                }
+            }
+        },
+
+        -- Door Controls (NEW!)
+        doors = {
+            enabled = true,
+            controls = {
+                [210] = 0, -- NUM7 = Front Left Door
+                [211] = 1, -- NUM8 = Front Right Door
+                [212] = 2, -- NUM9 = Back Left Door
+                [213] = 3  -- NUM6 = Back Right Door
+            }
         },
 
         -- Collision Objects (Begehbare Leiter)

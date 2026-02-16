@@ -335,13 +335,6 @@ function OpenControlPanel(vehicle, vehicleName)
     SetNuiFocus(true, true)    -- false = Keyboard funktioniert in FiveM!
     SetNuiFocusKeepInput(true) -- Erlaubt Input trotz NUI
 
-    CreateThread(function()
-        while menuOpen do
-            Wait(0)
-            ShowCursorThisFrame() -- Force Maus sichtbar
-        end
-    end)
-
     SendNUIMessage({
         action = 'openPanel',
         vehicle = currentConfig

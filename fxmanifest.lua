@@ -16,12 +16,17 @@ client_scripts {
     'client/controls.lua',
     'client/cage.lua',
     'client/water.lua',
-    'client/collision.lua'
+    'client/collision.lua',
+    'client/props.lua',
+    'client/spotlight.lua',
+    'client/spinning.lua',
+    'client/doors.lua'
 }
 
 server_scripts {
     'server/main.lua',
-    'server/sync.lua'
+    'server/sync.lua',
+    'server/hybrid.lua'
 }
 
 ui_page 'nui/html/index.html'
