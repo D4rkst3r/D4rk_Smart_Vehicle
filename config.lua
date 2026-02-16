@@ -4,7 +4,8 @@ Config = {}
 -- GENERAL SETTINGS
 -- ============================================
 Config.Locale = 'de'
-Config.Debug = true -- Set to false in production
+Config.Debug = true         -- Wichtige Events (Spawn, Delete, Errors)
+Config.DebugVerbose = false -- Frame-by-Frame Logs (NUR für Entwicklung!)
 
 -- Control Modes
 Config.UseRemoteControl = true

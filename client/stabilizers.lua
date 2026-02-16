@@ -302,20 +302,6 @@ end
 -- ============================================
 -- CLEANUP
 -- ============================================
-Citizen.CreateThread(function()
-    while true do
-        Wait(5000)
-        local toRemove = {}
-        for netId, _ in pairs(stabProps) do
-            if not SafeGetEntity(netId) then
-                table.insert(toRemove, netId)
-            end
-        end
-        for _, netId in ipairs(toRemove) do
-            DeleteStabilizerProps(netId)
-        end
-    end
-end)
 
 AddEventHandler('onResourceStop', function(resourceName)
     if GetCurrentResourceName() ~= resourceName then return end

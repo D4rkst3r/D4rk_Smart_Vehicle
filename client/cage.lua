@@ -264,17 +264,4 @@ Citizen.CreateThread(function()
     end
 end)
 
--- ============================================
--- CLEANUP
--- ============================================
-AddEventHandler('onResourceStop', function(resourceName)
-    if GetCurrentResourceName() ~= resourceName then return end
-    for netId, _ in pairs(cageProps) do
-        DeleteCageProp(netId)
-    end
-    if playerInCage then
-        local playerPed = PlayerPedId()
-        DetachEntity(playerPed, true, false)
-        playerInCage = false
-    end
-end)
+

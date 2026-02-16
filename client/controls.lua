@@ -2,6 +2,38 @@
 -- FIX #1: Keine lokalen Variablen mehr - nutze globale aus main.lua
 -- controlActive, remoteActive, menuOpen sind global in main.lua definiert
 
+local cachedVehicles = {}
+local lastVehicleScan = 0
+
+function GetNearbyConfiguredVehicles(playerCoords, maxDist)
+    local now = GetGameTimer()
+
+    -- Nur alle 500ms neu scannen
+    if now - lastVehicleScan > 500 then
+        lastVehicleScan = now
+        cachedVehicles = {}
+
+        local vehicles = GetGamePool('CVehicle')
+        for _, vehicle in ipairs(vehicles) do
+            if DoesEntityExist(vehicle) then
+                local vehicleName = IsVehicleConfigured(vehicle)
+                if vehicleName then
+                    local dist = #(playerCoords - GetEntityCoords(vehicle))
+                    if dist < maxDist then
+                        table.insert(cachedVehicles, {
+                            vehicle = vehicle,
+                            name = vehicleName,
+                            distance = dist
+                        })
+                    end
+                end
+            end
+        end
+    end
+
+    return cachedVehicles
+end
+
 -- ============================================
 -- START CONTROL (FIX #3: wird jetzt von Proximity genutzt)
 -- ============================================

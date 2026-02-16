@@ -100,23 +100,6 @@ function DeleteCollisionObjects(netId)
     collisionProps[netId] = nil
 end
 
--- ============================================
--- CLEANUP THREAD
--- ============================================
-Citizen.CreateThread(function()
-    while true do
-        Wait(5000)
-        local toRemove = {}
-        for netId, _ in pairs(collisionProps) do
-            if not SafeGetEntity(netId) then
-                table.insert(toRemove, netId)
-            end
-        end
-        for _, netId in ipairs(toRemove) do
-            DeleteCollisionObjects(netId)
-        end
-    end
-end)
 
 -- ============================================
 -- CLEANUP ON STOP

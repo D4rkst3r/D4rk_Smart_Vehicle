@@ -245,13 +245,3 @@ AddEventHandler('D4rk_Smart:SyncWaterClient', function(netId, active)
         StopWater(netId)
     end
 end)
-
--- ============================================
--- CLEANUP
--- ============================================
-AddEventHandler('onResourceStop', function(resourceName)
-    if GetCurrentResourceName() ~= resourceName then return end
-    for netId, _ in pairs(waterProps) do
-        DeleteWaterProp(netId)
-    end
-end)

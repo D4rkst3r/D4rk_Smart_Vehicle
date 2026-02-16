@@ -27,17 +27,35 @@ function ShowNotification(msg, type)
     })
 end
 
+local vehicleConfigCache = {}
+local configCacheTime = 0
+
 function IsVehicleConfigured(vehicle)
     if not DoesEntityExist(vehicle) then return nil end
 
     local model = GetEntityModel(vehicle)
+
+    -- Cache prüfen (5 Sekunden gültig)
+    local now = GetGameTimer()
+    if now - configCacheTime > 5000 then
+        vehicleConfigCache = {}
+        configCacheTime = now
+    end
+
+    if vehicleConfigCache[model] ~= nil then
+        return vehicleConfigCache[model] or nil -- false = nicht konfiguriert
+    end
+
     local modelName = GetDisplayNameFromVehicleModel(model):lower()
 
     for vehicleName, _ in pairs(Config.Vehicles) do
         if modelName == vehicleName:lower() or GetHashKey(vehicleName) == model then
+            vehicleConfigCache[model] = vehicleName
             return vehicleName
         end
     end
+
+    vehicleConfigCache[model] = false
     return nil
 end
 
@@ -145,8 +163,12 @@ function SpawnBoneProps(vehicle, vehicleName)
                     local defaultValue = bone.default or bone.min or 0.0
                     AttachBoneProp(vehicle, netId, i, bone, defaultValue)
 
-                    if Config.Debug then
-                        print(string.format('[D4rk_Smart] Spawned prop #%d: %s (entity: %d)', i, bone.propModel, prop))
+                    if Config.DebugVerbose then
+                        print(string.format(
+                            '[D4rk_Smart] Prop #%d: off=(%.2f,%.2f,%.2f) rot=(%.2f,%.2f,%.2f) val=%.2f',
+                            boneIndex, offset.x, offset.y, offset.z,
+                            rotation.x, rotation.y, rotation.z, value
+                        ))
                     end
                 else
                     print('^1[D4rk_Smart] ERROR: Could not create prop: ' .. bone.propModel .. '^7')
@@ -360,14 +382,22 @@ end
 Citizen.CreateThread(function()
     while true do
         Wait(5000)
+
         local toClean = {}
+        -- Alle netIds aus allen Systemen sammeln
         for netId, _ in pairs(spawnedBoneProps) do
             if not SafeGetEntity(netId) then
-                table.insert(toClean, netId)
+                toClean[netId] = true
             end
         end
-        for _, netId in ipairs(toClean) do
+
+        -- Einmal aufräumen für alle Systeme
+        for netId, _ in pairs(toClean) do
             DeleteBoneProps(netId)
+            DeleteStabilizerProps(netId)
+            DeleteCollisionObjects(netId)
+            DeleteCageProp(netId)
+            DeleteWaterProp(netId)
         end
     end
 end)
@@ -429,27 +459,26 @@ function UpdateControl(vehicle, boneIndex, delta)
 
     if newValue ~= currentValue then
         state.controlValues[boneIndex] = newValue
-
-        -- Prop lokal bewegen (sofort, jeder Frame)
         ApplyBoneControl(vehicle, bone, newValue)
 
-        -- Server-Sync nur alle 100ms (statt jeden Frame!)
-        local key = boneIndex
         local now = GetGameTimer()
+        local key = boneIndex
+
+        -- Server UND NUI gemeinsam throttlen
         if not lastSyncTime[key] or (now - lastSyncTime[key]) >= 100 then
             lastSyncTime[key] = now
+
             local netId = SafeGetNetId(vehicle)
             if netId then
                 TriggerServerEvent('D4rk_Smart:SyncControl', netId, boneIndex, newValue)
             end
-        end
 
-        -- NUI updaten
-        SendNUIMessage({
-            action = 'updateControl',
-            index = boneIndex,
-            value = newValue
-        })
+            SendNUIMessage({
+                action = 'updateControl',
+                index = boneIndex,
+                value = newValue
+            })
+        end
     end
 end
 
