@@ -329,8 +329,14 @@ CreateThread(function()
             end
         end
 
-        -- Remote control
-        if not inVehicle and Config.UseRemoteControl and not controlActive and not remoteActive and not menuOpen then
+        -- Remote control (FIX: elseif verhindert Aktivieren+Deaktivieren im selben Frame)
+        if remoteActive then
+            -- Bereits aktiv → F7 zum Deaktivieren
+            if IsControlJustPressed(0, Config.Keys.OpenRemote) then
+                DeactivateRemote()
+            end
+        elseif not inVehicle and Config.UseRemoteControl and not controlActive and not menuOpen then
+            -- Noch nicht aktiv → F7 zum Aktivieren
             local vehicles = GetGamePool('CVehicle')
             local closestVehicle = nil
             local closestDistance = Config.MaxRemoteDistance
@@ -354,13 +360,6 @@ CreateThread(function()
                 if IsControlJustPressed(0, Config.Keys.OpenRemote) then
                     ActivateRemote(closestVehicle, closestName)
                 end
-            end
-        end
-
-        -- FIX #16: Remote deaktivieren per F7 Toggle
-        if remoteActive then
-            if IsControlJustPressed(0, Config.Keys.OpenRemote) then
-                DeactivateRemote()
             end
         end
 
