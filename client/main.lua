@@ -457,7 +457,6 @@ end
 -- AnimateStabilizers wird jetzt von stabilizers.lua übernommen
 -- Die alte Funktion aus main.lua kann gelöscht werden!
 function AnimateStabilizers(vehicle, stabConfig, deploy)
-    -- Wird jetzt von AnimateStabilizersProps in stabilizers.lua gemacht
     local vehicleName = IsVehicleConfigured(vehicle)
     if vehicleName then
         AnimateStabilizersProps(vehicle, vehicleName, deploy)
@@ -652,6 +651,18 @@ AddEventHandler('D4rk_Smart:SyncControlClient', function(netId, boneIndex, value
     local vehicle = NetworkGetEntityFromNetworkId(netId)
     if not DoesEntityExist(vehicle) then return end
 
+    -- NEU: Nicht auf eigenes Fahrzeug anwenden (haben wir schon lokal gemacht)
+    if vehicle == currentVehicle then
+        -- NUI trotzdem updaten (könnte von anderem Spieler kommen)
+        -- Aber ApplyBoneControl überspringen
+        SendNUIMessage({
+            action = 'updateControl',
+            index = boneIndex,
+            value = value
+        })
+        return
+    end
+
     local state = GetVehicleState(vehicle)
     if not state then return end
 
@@ -660,15 +671,6 @@ AddEventHandler('D4rk_Smart:SyncControlClient', function(netId, boneIndex, value
 
     state.controlValues[boneIndex] = value
     ApplyBoneControl(vehicle, bone, value)
-
-    -- Update NUI if this is our vehicle
-    if vehicle == currentVehicle then
-        SendNUIMessage({
-            action = 'updateControl',
-            index = boneIndex,
-            value = value
-        })
-    end
 end)
 
 RegisterNetEvent('D4rk_Smart:SyncStabilizersClient')
@@ -738,9 +740,20 @@ end)
 AddEventHandler('onResourceStop', function(resourceName)
     if GetCurrentResourceName() ~= resourceName then return end
 
-    -- Delete ALL spawned props
+    -- Delete ALL spawned bone props
     for netId, _ in pairs(spawnedBoneProps) do
         DeleteBoneProps(netId)
+    end
+
+    -- NEU: Unfreeze alle Fahrzeuge (falls Stützen aktiv waren)
+    for netId, state in pairs(vehicleStates) do
+        if state.stabilizersDeployed then
+            local veh = NetworkGetEntityFromNetworkId(netId)
+            if DoesEntityExist(veh) then
+                FreezeEntityPosition(veh, false)
+                SetVehicleHandbrake(veh, false)
+            end
+        end
     end
 
     CloseControlPanel()

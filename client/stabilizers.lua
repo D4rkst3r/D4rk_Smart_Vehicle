@@ -1,6 +1,6 @@
 -- D4rk Smart Vehicle - Stabilizers (PROP-BASED)
-local stabProps = {}     -- Spawned stabilizer props per vehicle netId
-local stabAnimating = {} -- Animation lock per vehicle
+local stabProps = {} -- Spawned stabilizer props per vehicle netId
+stabAnimating = {}   -- Animation lock per vehicle
 
 -- ============================================
 -- SPAWN STABILIZER PROPS

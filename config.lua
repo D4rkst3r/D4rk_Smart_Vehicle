@@ -101,7 +101,7 @@ Config.Vehicles = {
                 max = 8.0,
                 default = 0.0,
                 speed = 0.15,
-                controlGroup = 'ladder',
+                controlGroup = 'extend',
                 soundEffect = 'hydraulic',
                 -- NEU: Prop-System
                 propModel = 'prop_roadcone02a', -- Test-Prop
@@ -164,16 +164,19 @@ Config.Vehicles = {
         -- Stabilizers (Stützen)
         stabilizers = {
             enabled = true,
-            required = false, -- Empfohlen aber nicht Pflicht
-            bones = {
-                { name = 'misc_e', side = 'front_left',  offset = vector3(-1.5, 2.0, -0.8) },
-                { name = 'misc_f', side = 'front_right', offset = vector3(1.5, 2.0, -0.8) },
-                { name = 'misc_g', side = 'rear_left',   offset = vector3(-1.5, -2.0, -0.8) },
-                { name = 'misc_h', side = 'rear_right',  offset = vector3(1.5, -2.0, -0.8) }
-            },
-            speed = 0.2,
+            required = false,
+            propModel = 'prop_roadcone02a',
             maxExtension = 1.5,
-            soundEffect = 'stabilizer'
+            animDuration = 2000,
+            soundEffect = 'stabilizer',
+            bones = {
+                -- ALT: { name = 'misc_e', side = 'front_left', offset = vector3(-1.5, 2.0, -0.8) },
+                -- NEU:
+                { side = 'front_left',  offset = vector3(-1.5, 2.0, -0.3),  attachBone = 'bodyshell' },
+                { side = 'front_right', offset = vector3(1.5, 2.0, -0.3),   attachBone = 'bodyshell' },
+                { side = 'rear_left',   offset = vector3(-1.5, -2.0, -0.3), attachBone = 'bodyshell' },
+                { side = 'rear_right',  offset = vector3(1.5, -2.0, -0.3),  attachBone = 'bodyshell' },
+            },
         },
 
         -- Cage/Basket System
@@ -377,12 +380,18 @@ Config.Vehicles = {
         stabilizers = {
             enabled = true,
             required = false,
+            propModel = 'prop_roadcone02a',
+            maxExtension = 1.5,
+            animDuration = 2000,
+            soundEffect = 'stabilizer',
             bones = {
-                { name = 'misc_e', side = 'left',  offset = vector3(-1.2, 0.0, -0.6) },
-                { name = 'misc_f', side = 'right', offset = vector3(1.2, 0.0, -0.6) }
+                -- ALT: { name = 'misc_e', side = 'front_left', offset = vector3(-1.5, 2.0, -0.8) },
+                -- NEU:
+                { side = 'front_left',  offset = vector3(-1.5, 2.0, -0.3),  attachBone = 'bodyshell' },
+                { side = 'front_right', offset = vector3(1.5, 2.0, -0.3),   attachBone = 'bodyshell' },
+                { side = 'rear_left',   offset = vector3(-1.5, -2.0, -0.3), attachBone = 'bodyshell' },
+                { side = 'rear_right',  offset = vector3(1.5, -2.0, -0.3),  attachBone = 'bodyshell' },
             },
-            speed = 0.2,
-            maxExtension = 1.2
         },
 
         cage = {
@@ -559,12 +568,18 @@ Config.Vehicles = {
         stabilizers = {
             enabled = true,
             required = false,
+            propModel = 'prop_roadcone02a',
+            maxExtension = 1.5,
+            animDuration = 2000,
+            soundEffect = 'stabilizer',
             bones = {
-                { name = 'misc_d', side = 'left',  offset = vector3(-1.0, 0.0, -0.5) },
-                { name = 'misc_e', side = 'right', offset = vector3(1.0, 0.0, -0.5) }
+                -- ALT: { name = 'misc_e', side = 'front_left', offset = vector3(-1.5, 2.0, -0.8) },
+                -- NEU:
+                { side = 'front_left',  offset = vector3(-1.5, 2.0, -0.3),  attachBone = 'bodyshell' },
+                { side = 'front_right', offset = vector3(1.5, 2.0, -0.3),   attachBone = 'bodyshell' },
+                { side = 'rear_left',   offset = vector3(-1.5, -2.0, -0.3), attachBone = 'bodyshell' },
+                { side = 'rear_right',  offset = vector3(1.5, -2.0, -0.3),  attachBone = 'bodyshell' },
             },
-            speed = 0.2,
-            maxExtension = 1.0
         },
 
         cage = {

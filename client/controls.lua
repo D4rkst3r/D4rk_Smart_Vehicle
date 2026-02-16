@@ -72,17 +72,13 @@ function ControlThread()
     while controlActive and currentVehicle and DoesEntityExist(currentVehicle) do
         Wait(0)
 
-        -- ============================================
-        -- NUI PANEL AKTIV (Sicherheits-Block)
-        -- ============================================
-        -- NEU: Radio & andere störende Controls IMMER blockieren
+        -- NEU: Störende GTA-Controls IMMER blockieren
         DisableControlAction(0, 85, true)  -- Q (Radio Wheel)
-        DisableControlAction(0, 48, true)  -- Z (Radio vorher)
-        DisableControlAction(0, 172, true) -- Pfeil Hoch (Handy)
-        DisableControlAction(0, 173, true) -- Pfeil Runter (Handy)
+        DisableControlAction(0, 48, true)  -- Z (Radio zurück)
+        DisableControlAction(0, 172, true) -- Pfeil Hoch (Phone)
+        DisableControlAction(0, 173, true) -- Pfeil Runter (Phone)
         DisableControlAction(0, 108, true) -- Numpad 4
         DisableControlAction(0, 109, true) -- Numpad 6
-
 
         if menuOpen then
             DisableControlAction(0, 1, true)
@@ -147,32 +143,32 @@ function HandleControls()
     if currentConfig.bones then
         for i, bone in ipairs(currentConfig.bones) do
             local delta = 0.0
+            local group = bone.controlGroup or ''
 
-            if bone.controlGroup == 'turret' or i == 1 then
+            -- NUR nach controlGroup zuordnen, NICHT nach Index!
+            if group == 'turret' or group == 'base' then
+                -- Numpad 4 / 6
                 if IsDisabledControlPressed(0, Config.Keys.RotateLeft) then
                     delta = -1.0
                 elseif IsDisabledControlPressed(0, Config.Keys.RotateRight) then
                     delta = 1.0
                 end
-            end
-
-            if bone.controlGroup == 'ladder' or bone.controlGroup == 'crane' or i == 2 then
+            elseif group == 'ladder' or group == 'crane' or group == 'arm' or group == 'lift' then
+                -- Pfeil Hoch / Runter
                 if IsDisabledControlPressed(0, Config.Keys.IncreaseControl) then
                     delta = 1.0
                 elseif IsDisabledControlPressed(0, Config.Keys.DecreaseControl) then
                     delta = -1.0
                 end
-            end
-
-            if i == 3 then
-                if IsDisabledControlPressed(0, 85) then     -- Q
+            elseif group == 'extend' or group == 'winch' then
+                -- Q / Z (disabled)
+                if IsDisabledControlPressed(0, 85) then
                     delta = 1.0
-                elseif IsDisabledControlPressed(0, 48) then -- Z
+                elseif IsDisabledControlPressed(0, 48) then
                     delta = -1.0
                 end
-            end
-
-            if i == 4 then
+            elseif group == 'basket' then
+                -- Shift+Q / Shift+Z
                 if IsDisabledControlPressed(0, 21) and IsDisabledControlPressed(0, 85) then
                     delta = 1.0
                 elseif IsDisabledControlPressed(0, 21) and IsDisabledControlPressed(0, 48) then
@@ -186,7 +182,7 @@ function HandleControls()
         end
     end
 
-    -- Handle PROP controls
+    -- Handle PROP controls (unverändert)
     if currentConfig.props then
         for _, propConfig in ipairs(currentConfig.props) do
             if propConfig.controls then
@@ -197,7 +193,6 @@ function HandleControls()
                                 control.movementAmount)
                         end
                     end
-
                     if IsDisabledControlJustPressed(0, control.control) then
                         if control.movementType == "toggle" then
                             ToggleProp(currentVehicle, propConfig.id)

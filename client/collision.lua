@@ -100,15 +100,6 @@ function DeleteCollisionObjects(netId)
 end
 
 -- ============================================
--- SPAWN WHEN VEHICLE INITIALIZED
--- ============================================
--- Wird aufgerufen wenn InitializeVehicleState Props spawnt
-RegisterNetEvent('D4rk_Smart:VehicleInitialized')
-AddEventHandler('D4rk_Smart:VehicleInitialized', function(vehicle, vehicleName)
-    SpawnCollisionObjects(vehicle, vehicleName)
-end)
-
--- ============================================
 -- CLEANUP THREAD
 -- ============================================
 Citizen.CreateThread(function()

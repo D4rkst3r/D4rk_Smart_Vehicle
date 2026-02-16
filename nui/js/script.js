@@ -180,6 +180,7 @@ function getGroupLabel(group) {
     turret: "Turm",
     crane: "Kran",
     ladder: "Leiter",
+    extend: "Ausfahren", // ← NEU
     basket: "Korb",
     arm: "Ausleger",
     winch: "Winde",
