@@ -16,7 +16,7 @@ Config.MaxRemoteDistance = 50.0
 Config.MaxStandingDistance = 5.0
 
 -- Performance
-Config.UpdateRate = 50 -- ms between updates (lower = smoother but more intensive)
+Config.UpdateRate = 50
 Config.MaxBonesPerVehicle = 20
 
 -- ============================================
@@ -25,9 +25,10 @@ Config.MaxBonesPerVehicle = 20
 Config.Keys = {
     OpenMenu = 38,          -- E
     OpenRemote = 168,       -- F7
-    EnterCage = 38,         -- E (when near cage)
+    EnterCage = 38,         -- E (near cage)
     ExitCage = 73,          -- X
     ToggleWater = 47,       -- G
+    StabilizersToggle = 47, -- G
     MenuUp = 172,           -- Arrow Up
     MenuDown = 173,         -- Arrow Down
     MenuLeft = 174,         -- Arrow Left
@@ -38,7 +39,33 @@ Config.Keys = {
     DecreaseControl = 173,  -- Arrow Down
     RotateLeft = 108,       -- Numpad 4
     RotateRight = 109,      -- Numpad 6
-    StabilizersToggle = 47, -- G
+}
+
+-- ============================================
+-- CONTROL GROUPS
+-- Zentrale Tasten-Zuordnung + NUI Labels
+-- Neue Gruppe = 1 Zeile hier, fertig!
+--
+-- increase = Taste für +/rechts/hoch
+-- decrease = Taste für -/links/runter
+-- label    = Anzeige im NUI Panel
+-- shift    = true → braucht zusätzlich Shift gedrückt
+-- ============================================
+Config.ControlGroups = {
+    turret    = { increase = 109, decrease = 108, label = 'Turm' },             -- Numpad 6 / 4
+    base      = { increase = 109, decrease = 108, label = 'Basis' },            -- Numpad 6 / 4
+    ladder    = { increase = 172, decrease = 173, label = 'Leiter' },           -- Pfeil Hoch / Runter
+    crane     = { increase = 172, decrease = 173, label = 'Kran' },             -- Pfeil Hoch / Runter
+    arm       = { increase = 172, decrease = 173, label = 'Ausleger' },         -- Pfeil Hoch / Runter
+    lift      = { increase = 172, decrease = 173, label = 'Hebebühne' },        -- Pfeil Hoch / Runter
+    platform  = { increase = 172, decrease = 173, label = 'Plattform' },        -- Pfeil Hoch / Runter
+    extend    = { increase = 85, decrease = 48, label = 'Ausfahren' },          -- Q / Z
+    winch     = { increase = 85, decrease = 48, label = 'Winde' },              -- Q / Z
+    hydraulic = { increase = 85, decrease = 48, label = 'Hydraulik' },          -- Q / Z
+    basket    = { increase = 85, decrease = 48, label = 'Korb', shift = true }, -- Shift+Q / Shift+Z
+    hook      = { increase = 85, decrease = 48, label = 'Haken', shift = true },
+    water     = { increase = 174, decrease = 175, label = 'Wasserwerfer' },     -- Pfeil Links / Rechts
+    light     = { increase = 174, decrease = 175, label = 'Beleuchtung' },      -- Pfeil Links / Rechts
 }
 
 -- ============================================
@@ -47,131 +74,127 @@ Config.Keys = {
 Config.Vehicles = {
 
     -- ==========================================
-    -- FIRE DEPARTMENT - LADDER TRUCK (Advanced)
+    -- FIRE DEPARTMENT - LADDER TRUCK
     -- ==========================================
     ['firetruk'] = {
         type = 'ladder',
         label = 'Feuerwehr Drehleiter',
         description = 'Drehleiter mit Rettungskorb und Wasserwerfer',
 
+        -- ======================
+        -- BONES (Prop-basiert!)
+        -- ======================
+        -- Hierarchie:
+        --   Fahrzeug (bodyshell)
+        --     └─ #1 Turm (dreht Z)
+        --         └─ #2 Leiter (hebt X)
+        --             └─ #3 Leiter Ausfahren (fährt Y)
+        --                 └─ #4 Korb (dreht Z)
+        --                 └─ Cage-Prop
+        --                 └─ Water-Prop
         bones = {
-            -- BONE 1: Turm Rotation
+            -- #1: Turm Rotation → Numpad 4/6
             {
-                name = 'bumper_r',
-                label = 'Turm Rotation',
-                type = 'rotation',
-                axis = 'z',
-                min = -270.0,
-                max = 270.0,
-                default = 0.0,
-                speed = 0.4,
-                controlGroup = 'turret',
-                -- NEU: Prop-System
-                propModel = 'prop_roadcone02a',           -- Test-Prop (später eigenes Modell!)
-                attachTo = 'vehicle',                     -- Direkt am Fahrzeug
-                attachBone = 'bodyshell',                 -- Vehicle-Bone als Referenzpunkt
-                defaultOffset = vector3(0.0, -1.0, 2.5),  -- Position auf dem Dach
-                defaultRotation = vector3(0.0, 0.0, 0.0), -- Start-Rotation
-            },
-            -- BONE 2: Leiter Anheben (hängt am Turm-Prop!)
-            {
-                name = 'turret_1base',
-                label = 'Leiter Anheben',
-                type = 'rotation',
-                axis = 'x',
-                min = 0.0,
-                max = 75.0,
-                default = 0.0,
-                speed = 0.3,
-                controlGroup = 'ladder',
-                soundEffect = 'hydraulic',
-                -- NEU: Prop-System
-                propModel = 'prop_roadcone02a',         -- Test-Prop
-                attachTo = '1',                         -- An Prop #1 (Turm!) hängen!
-                defaultOffset = vector3(0.0, 0.0, 0.5), -- Über dem Turm
+                name            = 'turm',
+                label           = 'Turm Rotation',
+                type            = 'rotation',
+                axis            = 'z',
+                min             = -270.0,
+                max             = 270.0,
+                default         = 0.0,
+                speed           = 0.4,
+                controlGroup    = 'turret',
+                propModel       = 'prop_roadcone02a',
+                attachTo        = 'vehicle',
+                attachBone      = 'bodyshell',
+                defaultOffset   = vector3(0.0, -1.0, 2.5),
                 defaultRotation = vector3(0.0, 0.0, 0.0),
             },
-            -- BONE 3: Leiter Ausfahren (hängt an der Leiter!)
+            -- #2: Leiter Anheben → Pfeil Hoch/Runter
             {
-                name = 'ladder_extend',
-                label = 'Leiter Ausfahren',
-                type = 'position',
-                axis = 'y',
-                min = 0.0,
-                max = 8.0,
-                default = 0.0,
-                speed = 0.15,
-                controlGroup = 'extend',
-                soundEffect = 'hydraulic',
-                -- NEU: Prop-System
-                propModel = 'prop_roadcone02a', -- Test-Prop
-                attachTo = '2',                 -- An Prop #2 (Leiter!) hängen!
-                defaultOffset = vector3(0.0, 0.5, 0.0),
+                name            = 'leiter_heben',
+                label           = 'Leiter Anheben',
+                type            = 'rotation',
+                axis            = 'x',
+                min             = 0.0,
+                max             = 75.0,
+                default         = 0.0,
+                speed           = 0.3,
+                controlGroup    = 'ladder',
+                soundEffect     = 'hydraulic',
+                propModel       = 'prop_roadcone02a',
+                attachTo        = '1',
+                defaultOffset   = vector3(0.0, 0.0, 0.5),
                 defaultRotation = vector3(0.0, 0.0, 0.0),
             },
-            -- BONE 4: Korb Rotation (hängt an der ausgefahrenen Leiter!)
+            -- #3: Leiter Ausfahren → Q/Z
             {
-                name = 'basket_rotate',
-                label = 'Korb Rotation',
-                type = 'rotation',
-                axis = 'z',
-                min = -180.0,
-                max = 180.0,
-                default = 0.0,
-                speed = 0.3,
-                controlGroup = 'basket',
-                -- NEU: Prop-System
-                propModel = 'prop_roadcone02a', -- Test-Prop
-                attachTo = '3',                 -- An Prop #3 (ausgefahrene Leiter!)
-                defaultOffset = vector3(0.0, 0.0, 0.0),
+                name            = 'leiter_ausfahren',
+                label           = 'Leiter Ausfahren',
+                type            = 'position',
+                axis            = 'y',
+                min             = 0.0,
+                max             = 8.0,
+                default         = 0.0,
+                speed           = 0.15,
+                controlGroup    = 'extend',
+                soundEffect     = 'hydraulic',
+                propModel       = 'prop_roadcone02a',
+                attachTo        = '2',
+                defaultOffset   = vector3(0.0, 0.5, 0.0),
+                defaultRotation = vector3(0.0, 0.0, 0.0),
+            },
+            -- #4: Korb Rotation → Shift+Q/Z
+            {
+                name            = 'korb',
+                label           = 'Korb Rotation',
+                type            = 'rotation',
+                axis            = 'z',
+                min             = -180.0,
+                max             = 180.0,
+                default         = 0.0,
+                speed           = 0.3,
+                controlGroup    = 'basket',
+                propModel       = 'prop_roadcone02a',
+                attachTo        = '3',
+                defaultOffset   = vector3(0.0, 0.0, 0.0),
                 defaultRotation = vector3(0.0, 0.0, 0.0),
             },
         },
 
-        -- Props System (London Studios Style) - NEW!
+        -- ======================
+        -- PROPS (London Studios Style)
+        -- ======================
         props = {
-            -- Example: Extra warning beacon
             {
-                id = "warning_beacon",
-                model = "prop_phonebox_01c", -- Example prop
-                attachTo = "vehicle",        -- or bone name
-                boneIndex = "bodyshell",     -- Optional: attach to specific bone
+                id = 'warning_beacon',
+                model = 'prop_phonebox_01c',
+                attachTo = 'vehicle',
+                boneIndex = 'bodyshell',
                 defaultOffset = vector3(0.0, 2.0, 1.5),
                 defaultRotation = vector3(0.0, 0.0, 0.0),
                 offset = vector3(0.0, 2.0, 1.5),
                 rotation = vector3(0.0, 0.0, 0.0),
                 disableCollisions = true,
-                toggleOffInitially = false, -- Start visible
-
-                -- Controls for this prop
+                toggleOffInitially = false,
                 controls = {
-                    {
-                        control = 104,          -- H key
-                        movementType = "toggle" -- Toggle visibility
-                    },
-                    {
-                        control = 105,         -- I key
-                        movementType = "spin", -- Continuous spinning
-                        axis = 3,              -- Z-axis
-                        movementAmount = 1.0,
-                        movementSpeed = 50,    -- 50ms per rotation
-                        removeSmoke = false
-                    }
+                    { control = 104, movementType = 'toggle' },
+                    { control = 105, movementType = 'spin',  axis = 3, movementAmount = 1.0, movementSpeed = 50, removeSmoke = false },
                 }
             }
         },
 
-        -- Stabilizers (Stützen)
+        -- ======================
+        -- STABILIZERS (Prop-basiert)
+        -- ======================
         stabilizers = {
-            enabled = true,
-            required = false,
-            propModel = 'prop_roadcone02a',
+            enabled      = true,
+            required     = false,
+            propModel    = 'prop_roadcone02a',
             maxExtension = 1.5,
             animDuration = 2000,
-            soundEffect = 'stabilizer',
-            bones = {
-                -- ALT: { name = 'misc_e', side = 'front_left', offset = vector3(-1.5, 2.0, -0.8) },
-                -- NEU:
+            soundEffect  = 'stabilizer',
+            bones        = {
                 { side = 'front_left',  offset = vector3(-1.5, 2.0, -0.3),  attachBone = 'bodyshell' },
                 { side = 'front_right', offset = vector3(1.5, 2.0, -0.3),   attachBone = 'bodyshell' },
                 { side = 'rear_left',   offset = vector3(-1.5, -2.0, -0.3), attachBone = 'bodyshell' },
@@ -179,214 +202,187 @@ Config.Vehicles = {
             },
         },
 
-        -- Cage/Basket System
-        -- Cage (an Leiter-Spitze = Prop #3)
+        -- ======================
+        -- CAGE (Prop-basiert, an Leiter-Spitze #3)
+        -- ======================
         cage = {
-            enabled = true,
-            propModel = 'prop_roadcone02a', -- Test! Später echtes Korb-Modell
-            attachTo = '3',                 -- An Prop #3 (Leiter Ausfahren)
-            offset = vector3(0.0, 0.5, 0.0),
-            rotation = vector3(0.0, 0.0, 0.0),
-            playerOffset = vector3(0.0, 0.0, 0.3), -- Wo der Spieler im Korb steht
-            enterDistance = 3.0,
-            canControl = true,
-            maxOccupants = 2,
-            enableCollision = true, -- Spieler soll draufstehen können!
+            enabled         = true,
+            propModel       = 'prop_roadcone02a',
+            attachTo        = '3',
+            offset          = vector3(0.0, 0.5, 0.0),
+            rotation        = vector3(0.0, 0.0, 0.0),
+            playerOffset    = vector3(0.0, 0.0, 0.3),
+            enterDistance   = 3.0,
+            canControl      = true,
+            maxOccupants    = 2,
+            enableCollision = true,
         },
 
-        -- Water Monitor (am Korb = Cage-Prop oder auch an Prop #3)
+        -- ======================
+        -- WATER MONITOR (Prop-basiert, an Leiter-Spitze #3)
+        -- ======================
         waterMonitor = {
-            enabled = true,
-            propModel = 'prop_roadcone02a', -- Test! Später echtes Düsen-Modell
-            attachTo = '3',                 -- An Leiter-Spitze
-            offset = vector3(0.0, 1.0, 0.3),
-            rotation = vector3(0.0, 0.0, 0.0),
+            enabled        = true,
+            propModel      = 'prop_roadcone02a',
+            attachTo       = '3',
+            offset         = vector3(0.0, 1.0, 0.3),
+            rotation       = vector3(0.0, 0.0, 0.0),
             particleEffect = 'core',
-            particleName = 'water_cannon_jet',
-            range = 30.0,
-            pressure = 1.5,
-            soundEffect = 'water_cannon'
+            particleName   = 'water_cannon_jet',
+            range          = 30.0,
+            pressure       = 1.5,
+            soundEffect    = 'water_cannon',
         },
-        -- Spotlights (NEW!)
+
+        -- ======================
+        -- SPOTLIGHTS
+        -- ======================
         spotlight = {
             enabled = true,
-            control = { 0, 101 }, -- H key
+            control = { 0, 101 },
             locations = {
-                ["misc_d"] = {    -- Cage/basket
-                    {
-                        directionOffSet = vector3(0.0, 10.0, 0.5),
-                        color = { 255, 255, 255 }, -- RGB white
-                        distance = 70.0,
-                        brightness = 70.0,
-                        hardness = 2.3,
-                        radius = 25.0,
-                        falloff = 25.0
-                    }
+                ['misc_d'] = {
+                    { directionOffSet = vector3(0.0, 10.0, 0.5), color = { 255, 255, 255 }, distance = 70.0, brightness = 70.0, hardness = 2.3, radius = 25.0, falloff = 25.0 },
                 },
-                ["vehicle"] = { -- Front of vehicle
-                    {
-                        directionOffSet = vector3(0.0, 10.0, 0.0),
-                        color = { 255, 255, 255 },
-                        distance = 50.0,
-                        brightness = 60.0,
-                        hardness = 2.0,
-                        radius = 20.0,
-                        falloff = 20.0
-                    }
-                }
+                ['vehicle'] = {
+                    { directionOffSet = vector3(0.0, 10.0, 0.0), color = { 255, 255, 255 }, distance = 50.0, brightness = 60.0, hardness = 2.0, radius = 20.0, falloff = 20.0 },
+                },
             }
         },
 
-        -- Door Controls (NEW!)
+        -- ======================
+        -- DOOR CONTROLS
+        -- ======================
         doors = {
             enabled = true,
             controls = {
-                [210] = 0, -- NUM7 = Front Left Door
-                [211] = 1, -- NUM8 = Front Right Door
-                [212] = 2, -- NUM9 = Back Left Door
-                [213] = 3  -- NUM6 = Back Right Door
+                [210] = 0, -- NUM7 = Front Left
+                [211] = 1, -- NUM8 = Front Right
+                [212] = 2, -- NUM9 = Back Left
+                [213] = 3, -- NUM6 = Back Right
             }
         },
 
-        -- Stabilizers
-        stabilizers = {
-            enabled = true,
-            required = false,
-            propModel = 'prop_roadcone02a', -- NEU: Test-Prop für jede Stütze
-            maxExtension = 1.5,
-            animDuration = 2000,            -- NEU: ms für Animation
-            soundEffect = 'stabilizer',
-            bones = {
-                {
-                    side = 'front_left',
-                    offset = vector3(-1.5, 2.0, -0.3), -- X/Y = Position, Z = Start
-                    rotation = vector3(0.0, 0.0, 0.0),
-                    attachBone = 'bodyshell',          -- NEU: Vehicle-Bone
-                },
-                {
-                    side = 'front_right',
-                    offset = vector3(1.5, 2.0, -0.3),
-                    rotation = vector3(0.0, 0.0, 0.0),
-                    attachBone = 'bodyshell',
-                },
-                {
-                    side = 'rear_left',
-                    offset = vector3(-1.5, -2.0, -0.3),
-                    rotation = vector3(0.0, 0.0, 0.0),
-                    attachBone = 'bodyshell',
-                },
-                {
-                    side = 'rear_right',
-                    offset = vector3(1.5, -2.0, -0.3),
-                    rotation = vector3(0.0, 0.0, 0.0),
-                    attachBone = 'bodyshell',
-                },
-            },
-        },
-
-        -- Collision (begehbare Leiter an Prop #3)
+        -- ======================
+        -- COLLISION (begehbare Leiter, an Prop #2)
+        -- ======================
         collision = {
             enabled = true,
             objects = {
                 {
-                    model = 'prop_ladder_01', -- Begehbare Leiter
-                    attachTo = '2',           -- NEU: An Prop #2 (Leiter Anheben)
-                    offset = vector3(0.0, 0.0, -0.3),
-                    rotation = vector3(0.0, 0.0, 0.0),
-                    invisible = false, -- NEU: Sichtbar oder unsichtbar?
+                    model     = 'prop_ladder_01',
+                    attachTo  = '2',
+                    offset    = vector3(0.0, 0.0, -0.3),
+                    rotation  = vector3(0.0, 0.0, 0.0),
+                    invisible = false,
                 },
             }
         },
+
+        -- ======================
+        -- UI
+        -- ======================
+        ui = {
+            showSpeed     = true,
+            showAngle     = true,
+            showStability = true,
+            theme         = 'fire',
+        }
     },
 
     -- ==========================================
-    -- CRANE TRUCK (Advanced)
+    -- CRANE TRUCK
     -- ==========================================
     ['flatbed'] = {
-        type = 'crane',
-        label = 'Schwerer Abschleppkran',
-        description = 'Abschlepp-LKW mit drehbarem Kran',
+        type         = 'crane',
+        label        = 'Schwerer Abschleppkran',
+        description  = 'Abschlepp-LKW mit drehbarem Kran',
 
-        bones = {
+        -- Hierarchie:
+        --   Fahrzeug (bodyshell)
+        --     └─ #1 Kran (dreht Z)
+        --         └─ #2 Ausleger (kippt X)
+        --             └─ #3 Ausleger Ausfahren (fährt Y)
+        --                 └─ #4 Seil (fährt Z runter)
+        bones        = {
+            -- #1: Kran Rotation → Numpad 4/6
             {
-                name = 'misc_a',
-                label = 'Kran Rotation',
-                type = 'rotation',
-                axis = 'z',
-                min = -180.0,
-                max = 180.0,
-                default = 0.0,
-                speed = 0.5,
-                controlGroup = 'crane',
-                -- NEU:
-                propModel = 'prop_roadcone02a',
-                attachTo = 'vehicle',
-                attachBone = 'bodyshell',
-                defaultOffset = vector3(0.0, -2.0, 1.5),
+                name            = 'kran_rotation',
+                label           = 'Kran Rotation',
+                type            = 'rotation',
+                axis            = 'z',
+                min             = -180.0,
+                max             = 180.0,
+                default         = 0.0,
+                speed           = 0.5,
+                controlGroup    = 'crane',
+                propModel       = 'prop_roadcone02a',
+                attachTo        = 'vehicle',
+                attachBone      = 'bodyshell',
+                defaultOffset   = vector3(0.0, -2.0, 1.5),
                 defaultRotation = vector3(0.0, 0.0, 0.0),
             },
+            -- #2: Ausleger Neigung → Pfeil Hoch/Runter
             {
-                name = 'misc_b',
-                label = 'Ausleger Neigung',
-                type = 'rotation',
-                axis = 'x',
-                min = -60.0,
-                max = 60.0,
-                default = 0.0,
-                speed = 0.3,
-                controlGroup = 'crane',
-                soundEffect = 'hydraulic',
-                -- NEU:
-                propModel = 'prop_roadcone02a',
-                attachTo = '1',
-                defaultOffset = vector3(0.0, 0.0, 0.5),
+                name            = 'ausleger_neigung',
+                label           = 'Ausleger Neigung',
+                type            = 'rotation',
+                axis            = 'x',
+                min             = -60.0,
+                max             = 60.0,
+                default         = 0.0,
+                speed           = 0.3,
+                controlGroup    = 'arm',
+                soundEffect     = 'hydraulic',
+                propModel       = 'prop_roadcone02a',
+                attachTo        = '1',
+                defaultOffset   = vector3(0.0, 0.0, 0.5),
                 defaultRotation = vector3(0.0, 0.0, 0.0),
             },
+            -- #3: Ausleger Ausfahren → Q/Z
             {
-                name = 'misc_c',
-                label = 'Ausleger Ausfahren',
-                type = 'position',
-                axis = 'y',
-                min = 0.0,
-                max = 8.0,
-                default = 0.0,
-                speed = 0.12,
-                controlGroup = 'crane',
-                soundEffect = 'hydraulic',
-                -- NEU:
-                propModel = 'prop_roadcone02a',
-                attachTo = '2',
-                defaultOffset = vector3(0.0, 0.5, 0.0),
+                name            = 'ausleger_ausfahren',
+                label           = 'Ausleger Ausfahren',
+                type            = 'position',
+                axis            = 'y',
+                min             = 0.0,
+                max             = 8.0,
+                default         = 0.0,
+                speed           = 0.12,
+                controlGroup    = 'extend',
+                soundEffect     = 'hydraulic',
+                propModel       = 'prop_roadcone02a',
+                attachTo        = '2',
+                defaultOffset   = vector3(0.0, 0.5, 0.0),
                 defaultRotation = vector3(0.0, 0.0, 0.0),
             },
+            -- #4: Seil Länge → Shift+Q/Z
             {
-                name = 'misc_d',
-                label = 'Seil Länge',
-                type = 'position',
-                axis = 'z',
-                min = 0.0,
-                max = 12.0,
-                default = 0.0,
-                speed = 0.25,
-                controlGroup = 'winch',
-                soundEffect = 'winch',
-                -- NEU:
-                propModel = 'prop_roadcone02a',
-                attachTo = '3',
-                defaultOffset = vector3(0.0, 0.0, -0.5),
+                name            = 'seil',
+                label           = 'Seil Länge',
+                type            = 'position',
+                axis            = 'z',
+                min             = 0.0,
+                max             = 12.0,
+                default         = 0.0,
+                speed           = 0.25,
+                controlGroup    = 'winch',
+                soundEffect     = 'winch',
+                propModel       = 'prop_roadcone02a',
+                attachTo        = '3',
+                defaultOffset   = vector3(0.0, 0.0, -0.5),
                 defaultRotation = vector3(0.0, 0.0, 0.0),
-            }
+            },
         },
-        stabilizers = {
-            enabled = true,
-            required = false,
-            propModel = 'prop_roadcone02a',
+
+        stabilizers  = {
+            enabled      = true,
+            required     = false,
+            propModel    = 'prop_roadcone02a',
             maxExtension = 1.5,
             animDuration = 2000,
-            soundEffect = 'stabilizer',
-            bones = {
-                -- ALT: { name = 'misc_e', side = 'front_left', offset = vector3(-1.5, 2.0, -0.8) },
-                -- NEU:
+            soundEffect  = 'stabilizer',
+            bones        = {
                 { side = 'front_left',  offset = vector3(-1.5, 2.0, -0.3),  attachBone = 'bodyshell' },
                 { side = 'front_right', offset = vector3(1.5, 2.0, -0.3),   attachBone = 'bodyshell' },
                 { side = 'rear_left',   offset = vector3(-1.5, -2.0, -0.3), attachBone = 'bodyshell' },
@@ -394,129 +390,139 @@ Config.Vehicles = {
             },
         },
 
-        cage = {
-            enabled = false
-        },
+        cage         = { enabled = false },
+        waterMonitor = { enabled = false },
+        collision    = { enabled = false },
 
-        waterMonitor = {
-            enabled = false
-        },
-
-        collision = {
-            enabled = false
-        },
-
-        ui = {
+        ui           = {
             showSpeed = true,
             showAngle = true,
-            theme = 'utility'
+            theme     = 'utility',
         }
     },
 
     -- ==========================================
-    -- TOWER/PLATFORM TRUCK
+    -- TOWER / PLATFORM TRUCK
     -- ==========================================
     ['tower_truck'] = {
-        type = 'platform',
-        label = 'Hubrettungsfahrzeug',
-        description = 'Gelenkarm-Hubarbeitsbühne',
+        type         = 'platform',
+        label        = 'Hubrettungsfahrzeug',
+        description  = 'Gelenkarm-Hubarbeitsbühne',
 
-        bones = {
+        -- Hierarchie:
+        --   Fahrzeug (bodyshell)
+        --     └─ #1 Plattform Basis (dreht Z)
+        --         └─ #2 Unterer Arm (kippt X)
+        --             └─ #3 Oberer Arm (kippt X)
+        --                 └─ #4 Korb Position (fährt Z)
+        --                     └─ #5 Korb Rotation (dreht Z)
+        --                     └─ Cage-Prop
+        bones        = {
+            -- #1: Plattform Rotation → Numpad 4/6
             {
-                name = 'platform_base',
-                label = 'Plattform Rotation',
-                type = 'rotation',
-                axis = 'z',
-                min = -360.0,
-                max = 360.0,
-                default = 0.0,
-                speed = 0.35,
-                controlGroup = 'base'
+                name            = 'plattform_rotation',
+                label           = 'Plattform Rotation',
+                type            = 'rotation',
+                axis            = 'z',
+                min             = -360.0,
+                max             = 360.0,
+                default         = 0.0,
+                speed           = 0.35,
+                controlGroup    = 'turret',
+                propModel       = 'prop_roadcone02a',
+                attachTo        = 'vehicle',
+                attachBone      = 'bodyshell',
+                defaultOffset   = vector3(0.0, -1.5, 1.8),
+                defaultRotation = vector3(0.0, 0.0, 0.0),
             },
+            -- #2: Unterer Arm → Pfeil Hoch/Runter
             {
-                name = 'platform_arm_1',
-                label = 'Unterer Arm',
-                type = 'rotation',
-                axis = 'x',
-                min = -10.0,
-                max = 75.0,
-                default = 0.0,
-                speed = 0.2,
-                controlGroup = 'arm',
-                soundEffect = 'hydraulic'
+                name            = 'unterer_arm',
+                label           = 'Unterer Arm',
+                type            = 'rotation',
+                axis            = 'x',
+                min             = -10.0,
+                max             = 75.0,
+                default         = 0.0,
+                speed           = 0.2,
+                controlGroup    = 'arm',
+                soundEffect     = 'hydraulic',
+                propModel       = 'prop_roadcone02a',
+                attachTo        = '1',
+                defaultOffset   = vector3(0.0, 0.0, 0.5),
+                defaultRotation = vector3(0.0, 0.0, 0.0),
             },
+            -- #3: Oberer Arm → Q/Z
             {
-                name = 'platform_arm_2',
-                label = 'Oberer Arm',
-                type = 'rotation',
-                axis = 'x',
-                min = -75.0,
-                max = 75.0,
-                default = 0.0,
-                speed = 0.2,
-                controlGroup = 'arm',
-                soundEffect = 'hydraulic'
+                name            = 'oberer_arm',
+                label           = 'Oberer Arm',
+                type            = 'rotation',
+                axis            = 'x',
+                min             = -75.0,
+                max             = 75.0,
+                default         = 0.0,
+                speed           = 0.2,
+                controlGroup    = 'extend',
+                soundEffect     = 'hydraulic',
+                propModel       = 'prop_roadcone02a',
+                attachTo        = '2',
+                defaultOffset   = vector3(0.0, 0.0, 0.5),
+                defaultRotation = vector3(0.0, 0.0, 0.0),
             },
+            -- #4: Korb Position → Shift+Q/Z
             {
-                name = 'platform_basket',
-                label = 'Korb Position',
-                type = 'position',
-                axis = 'z',
-                min = 0.0,
-                max = 5.0,
-                default = 0.0,
-                speed = 0.15,
-                controlGroup = 'basket'
+                name            = 'korb_position',
+                label           = 'Korb Position',
+                type            = 'position',
+                axis            = 'z',
+                min             = 0.0,
+                max             = 5.0,
+                default         = 0.0,
+                speed           = 0.15,
+                controlGroup    = 'basket',
+                propModel       = 'prop_roadcone02a',
+                attachTo        = '3',
+                defaultOffset   = vector3(0.0, 0.0, 0.0),
+                defaultRotation = vector3(0.0, 0.0, 0.0),
             },
-            {
-                name = 'platform_basket_rotate',
-                label = 'Korb Rotation',
-                type = 'rotation',
-                axis = 'z',
-                min = -180.0,
-                max = 180.0,
-                default = 0.0,
-                speed = 0.3,
-                controlGroup = 'basket'
-            }
         },
 
-        stabilizers = {
-            enabled = true,
-            required = true,
-            bones = {
-                { name = 'stabilizer_fl', side = 'front_left',  offset = vector3(-1.8, 2.5, -0.9) },
-                { name = 'stabilizer_fr', side = 'front_right', offset = vector3(1.8, 2.5, -0.9) },
-                { name = 'stabilizer_rl', side = 'rear_left',   offset = vector3(-1.8, -2.5, -0.9) },
-                { name = 'stabilizer_rr', side = 'rear_right',  offset = vector3(1.8, -2.5, -0.9) }
+        stabilizers  = {
+            enabled      = true,
+            required     = true,
+            propModel    = 'prop_roadcone02a',
+            maxExtension = 2.0,
+            animDuration = 2500,
+            soundEffect  = 'stabilizer',
+            bones        = {
+                { side = 'front_left',  offset = vector3(-1.8, 2.5, -0.3),  attachBone = 'bodyshell' },
+                { side = 'front_right', offset = vector3(1.8, 2.5, -0.3),   attachBone = 'bodyshell' },
+                { side = 'rear_left',   offset = vector3(-1.8, -2.5, -0.3), attachBone = 'bodyshell' },
+                { side = 'rear_right',  offset = vector3(1.8, -2.5, -0.3),  attachBone = 'bodyshell' },
             },
-            speed = 0.18,
-            maxExtension = 2.0
         },
 
-        cage = {
-            enabled = true,
-            bone = 'platform_basket',
-            enterDistance = 3.5,
-            offset = vector3(0.0, 0.0, 1.0),
-            rotation = vector3(0.0, 0.0, 0.0),
-            canControl = true,
-            maxOccupants = 2
+        cage         = {
+            enabled         = true,
+            propModel       = 'prop_roadcone02a',
+            attachTo        = '4',
+            offset          = vector3(0.0, 0.0, 0.5),
+            rotation        = vector3(0.0, 0.0, 0.0),
+            playerOffset    = vector3(0.0, 0.0, 0.3),
+            enterDistance   = 3.5,
+            canControl      = true,
+            maxOccupants    = 2,
+            enableCollision = true,
         },
 
-        waterMonitor = {
-            enabled = false
-        },
+        waterMonitor = { enabled = false },
+        collision    = { enabled = false },
 
-        collision = {
-            enabled = false
-        },
-
-        ui = {
-            showSpeed = true,
-            showAngle = true,
+        ui           = {
+            showSpeed  = true,
+            showAngle  = true,
             showHeight = true,
-            theme = 'fire'
+            theme      = 'fire',
         }
     },
 
@@ -524,57 +530,77 @@ Config.Vehicles = {
     -- UTILITY BUCKET TRUCK
     -- ==========================================
     ['utillitruck'] = {
-        type = 'utility',
-        label = 'Service Hubarbeitsbühne',
-        description = 'Wartungsfahrzeug mit Arbeitskorb',
+        type         = 'utility',
+        label        = 'Service Hubarbeitsbühne',
+        description  = 'Wartungsfahrzeug mit Arbeitskorb',
 
-        bones = {
+        -- Hierarchie:
+        --   Fahrzeug (bodyshell)
+        --     └─ #1 Bühne Anheben (kippt X)
+        --         └─ #2 Bühne Ausfahren (fährt Y)
+        --             └─ #3 Korb Rotation (dreht Z)
+        --                 └─ Cage-Prop
+        bones        = {
+            -- #1: Bühne Anheben → Pfeil Hoch/Runter
             {
-                name = 'misc_a',
-                label = 'Bühne Anheben',
-                type = 'rotation',
-                axis = 'x',
-                min = 0.0,
-                max = 75.0,
-                default = 0.0,
-                speed = 0.28,
-                controlGroup = 'lift',
-                soundEffect = 'hydraulic'
+                name            = 'buehne_heben',
+                label           = 'Bühne Anheben',
+                type            = 'rotation',
+                axis            = 'x',
+                min             = 0.0,
+                max             = 75.0,
+                default         = 0.0,
+                speed           = 0.28,
+                controlGroup    = 'lift',
+                soundEffect     = 'hydraulic',
+                propModel       = 'prop_roadcone02a',
+                attachTo        = 'vehicle',
+                attachBone      = 'bodyshell',
+                defaultOffset   = vector3(0.0, -1.5, 1.5),
+                defaultRotation = vector3(0.0, 0.0, 0.0),
             },
+            -- #2: Bühne Ausfahren → Q/Z
             {
-                name = 'misc_b',
-                label = 'Bühne Ausfahren',
-                type = 'position',
-                axis = 'y',
-                min = 0.0,
-                max = 4.0,
-                default = 0.0,
-                speed = 0.12,
-                controlGroup = 'lift'
+                name            = 'buehne_ausfahren',
+                label           = 'Bühne Ausfahren',
+                type            = 'position',
+                axis            = 'y',
+                min             = 0.0,
+                max             = 4.0,
+                default         = 0.0,
+                speed           = 0.12,
+                controlGroup    = 'extend',
+                propModel       = 'prop_roadcone02a',
+                attachTo        = '1',
+                defaultOffset   = vector3(0.0, 0.5, 0.0),
+                defaultRotation = vector3(0.0, 0.0, 0.0),
             },
+            -- #3: Korb Rotation → Shift+Q/Z
             {
-                name = 'misc_c',
-                label = 'Korb Rotation',
-                type = 'rotation',
-                axis = 'z',
-                min = -90.0,
-                max = 90.0,
-                default = 0.0,
-                speed = 0.25,
-                controlGroup = 'basket'
-            }
+                name            = 'korb_rotation',
+                label           = 'Korb Rotation',
+                type            = 'rotation',
+                axis            = 'z',
+                min             = -90.0,
+                max             = 90.0,
+                default         = 0.0,
+                speed           = 0.25,
+                controlGroup    = 'basket',
+                propModel       = 'prop_roadcone02a',
+                attachTo        = '2',
+                defaultOffset   = vector3(0.0, 0.0, 0.0),
+                defaultRotation = vector3(0.0, 0.0, 0.0),
+            },
         },
 
-        stabilizers = {
-            enabled = true,
-            required = false,
-            propModel = 'prop_roadcone02a',
+        stabilizers  = {
+            enabled      = true,
+            required     = false,
+            propModel    = 'prop_roadcone02a',
             maxExtension = 1.5,
             animDuration = 2000,
-            soundEffect = 'stabilizer',
-            bones = {
-                -- ALT: { name = 'misc_e', side = 'front_left', offset = vector3(-1.5, 2.0, -0.8) },
-                -- NEU:
+            soundEffect  = 'stabilizer',
+            bones        = {
                 { side = 'front_left',  offset = vector3(-1.5, 2.0, -0.3),  attachBone = 'bodyshell' },
                 { side = 'front_right', offset = vector3(1.5, 2.0, -0.3),   attachBone = 'bodyshell' },
                 { side = 'rear_left',   offset = vector3(-1.5, -2.0, -0.3), attachBone = 'bodyshell' },
@@ -582,20 +608,26 @@ Config.Vehicles = {
             },
         },
 
-        cage = {
-            enabled = true,
-            bone = 'misc_c',
-            enterDistance = 2.5,
-            offset = vector3(0.0, 0.0, 0.5),
-            rotation = vector3(0.0, 0.0, 0.0),
-            canControl = true,
-            maxOccupants = 1
+        cage         = {
+            enabled         = true,
+            propModel       = 'prop_roadcone02a',
+            attachTo        = '3',
+            offset          = vector3(0.0, 0.0, 0.5),
+            rotation        = vector3(0.0, 0.0, 0.0),
+            playerOffset    = vector3(0.0, 0.0, 0.3),
+            enterDistance   = 2.5,
+            canControl      = true,
+            maxOccupants    = 1,
+            enableCollision = true,
         },
 
-        ui = {
-            theme = 'utility'
+        waterMonitor = { enabled = false },
+        collision    = { enabled = false },
+
+        ui           = {
+            theme = 'utility',
         }
-    }
+    },
 }
 
 -- ============================================
@@ -603,25 +635,25 @@ Config.Vehicles = {
 -- ============================================
 Config.SoundEffects = {
     hydraulic = {
-        name = 'Hydraulic',
-        volume = 0.3,
-        reference = 'DLC_APT_YACHT_DOOR_SOUNDS'
+        name      = 'Hydraulic',
+        volume    = 0.3,
+        reference = 'DLC_APT_YACHT_DOOR_SOUNDS',
     },
     winch = {
-        name = 'Winch',
-        volume = 0.4,
-        reference = 'DLC_EXEC_WAREHOUSE_LIFT'
+        name      = 'Winch',
+        volume    = 0.4,
+        reference = 'DLC_EXEC_WAREHOUSE_LIFT',
     },
     stabilizer = {
-        name = 'Stabilizer',
-        volume = 0.25,
-        reference = 'DLC_APT_YACHT_DOOR_SOUNDS'
+        name      = 'Stabilizer',
+        volume    = 0.25,
+        reference = 'DLC_APT_YACHT_DOOR_SOUNDS',
     },
     water_cannon = {
-        name = 'WATERING_CAN_SPRINKLE',
-        volume = 0.5,
-        reference = 'FAMILY_5_SOUNDS'
-    }
+        name      = 'WATERING_CAN_SPRINKLE',
+        volume    = 0.5,
+        reference = 'FAMILY_5_SOUNDS',
+    },
 }
 
 -- ============================================
@@ -630,46 +662,46 @@ Config.SoundEffects = {
 Config.Translations = {
     ['de'] = {
         -- Menu
-        ['open_menu'] = 'Drücke ~INPUT_CONTEXT~ für Steuerung',
-        ['open_remote'] = 'Drücke ~INPUT_SELECT_CHARACTER_TREVOR~ für Fernbedienung',
-        ['menu_title'] = 'Fahrzeugsteuerung',
+        ['open_menu']              = 'Drücke ~INPUT_CONTEXT~ für Steuerung',
+        ['open_remote']            = 'Drücke ~INPUT_SELECT_CHARACTER_TREVOR~ für Fernbedienung',
+        ['menu_title']             = 'Fahrzeugsteuerung',
 
         -- Controls
-        ['control_active'] = 'Steuerung aktiv',
-        ['control_stopped'] = 'Steuerung beendet',
-        ['too_far'] = 'Zu weit entfernt vom Fahrzeug',
-        ['already_controlled'] = 'Fahrzeug wird bereits gesteuert',
+        ['control_active']         = 'Steuerung aktiv',
+        ['control_stopped']        = 'Steuerung beendet',
+        ['too_far']                = 'Zu weit entfernt vom Fahrzeug',
+        ['already_controlled']     = 'Fahrzeug wird bereits gesteuert',
 
         -- Stabilizers
-        ['stabilizers_deployed'] = 'Stützen ausgefahren',
-        ['stabilizers_retracted'] = 'Stützen eingefahren',
-        ['stabilizers_required'] = 'Stützen müssen ausgefahren sein',
-        ['stabilizers_deploying'] = 'Stützen werden ausgefahren...',
+        ['stabilizers_deployed']   = 'Stützen ausgefahren',
+        ['stabilizers_retracted']  = 'Stützen eingefahren',
+        ['stabilizers_required']   = 'Stützen müssen ausgefahren sein',
+        ['stabilizers_deploying']  = 'Stützen werden ausgefahren...',
         ['stabilizers_retracting'] = 'Stützen werden eingefahren...',
 
         -- Cage
-        ['cage_enter'] = 'Drücke ~INPUT_CONTEXT~ um in Korb zu steigen',
-        ['cage_exit'] = 'Drücke ~INPUT_VEH_EXIT~ um Korb zu verlassen',
-        ['cage_entered'] = 'Im Rettungskorb',
-        ['cage_exited'] = 'Rettungskorb verlassen',
-        ['cage_full'] = 'Korb ist voll',
-        ['cage_too_far'] = 'Korb ist zu weit entfernt',
+        ['enter_cage']             = 'Drücke ~INPUT_CONTEXT~ um in Korb zu steigen',
+        ['exit_cage']              = 'Drücke ~INPUT_VEH_EXIT~ um Korb zu verlassen',
+        ['cage_entered']           = 'Im Rettungskorb',
+        ['cage_exited']            = 'Rettungskorb verlassen',
+        ['cage_full']              = 'Korb ist voll',
+        ['cage_too_far']           = 'Korb ist zu weit entfernt',
 
         -- Water
-        ['water_activated'] = 'Wasserwerfer aktiviert',
-        ['water_deactivated'] = 'Wasserwerfer deaktiviert',
-        ['water_toggle'] = 'Drücke ~INPUT_DETONATE~ um Wasserwerfer zu schalten',
+        ['water_activated']        = 'Wasserwerfer aktiviert',
+        ['water_deactivated']      = 'Wasserwerfer deaktiviert',
+        ['water_toggle']           = 'Drücke ~INPUT_DETONATE~ um Wasserwerfer zu schalten',
 
         -- Remote
-        ['remote_activated'] = 'Fernbedienung aktiv',
-        ['remote_deactivated'] = 'Fernbedienung deaktiviert',
+        ['remote_activated']       = 'Fernbedienung aktiv',
+        ['remote_deactivated']     = 'Fernbedienung deaktiviert',
 
         -- Status
-        ['speed'] = 'Geschwindigkeit',
-        ['angle'] = 'Winkel',
-        ['extension'] = 'Ausfahrung',
-        ['height'] = 'Höhe',
-        ['rotation'] = 'Rotation',
+        ['speed']                  = 'Geschwindigkeit',
+        ['angle']                  = 'Winkel',
+        ['extension']              = 'Ausfahrung',
+        ['height']                 = 'Höhe',
+        ['rotation']               = 'Rotation',
     }
 }
 
@@ -680,16 +712,16 @@ Config.Animations = {
     remote = {
         dict = 'amb@world_human_stand_mobile@male@text@base',
         anim = 'base',
-        flag = 49
+        flag = 49,
     },
     standing_control = {
         dict = 'amb@prop_human_parking_meter@female@idle_a',
         anim = 'idle_a',
-        flag = 1
+        flag = 1,
     },
     cage_enter = {
         dict = 'move_m@_idles@standing@',
         anim = 'idle_a',
-        flag = 1
-    }
+        flag = 1,
+    },
 }

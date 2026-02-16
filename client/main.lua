@@ -514,7 +514,8 @@ function OpenControlPanel(vehicle, vehicleName)
     -- 5. NUI Nachrichten
     SendNUIMessage({
         action = 'openPanel',
-        vehicle = currentConfig
+        vehicle = currentConfig,
+        groupLabels = Config.ControlGroups -- NEU: Labels mitschicken
     })
 
     -- Daten-Sync an UI

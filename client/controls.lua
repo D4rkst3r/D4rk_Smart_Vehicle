@@ -72,23 +72,21 @@ function ControlThread()
     while controlActive and currentVehicle and DoesEntityExist(currentVehicle) do
         Wait(0)
 
-        -- NEU: Störende GTA-Controls IMMER blockieren
-        DisableControlAction(0, 85, true)  -- Q (Radio Wheel)
-        DisableControlAction(0, 48, true)  -- Z (Radio zurück)
-        DisableControlAction(0, 172, true) -- Pfeil Hoch (Phone)
-        DisableControlAction(0, 173, true) -- Pfeil Runter (Phone)
-        DisableControlAction(0, 108, true) -- Numpad 4
-        DisableControlAction(0, 109, true) -- Numpad 6
+        -- Automatisch ALLE verwendeten Tasten für GTA blockieren
+        for _, mapping in pairs(Config.ControlGroups) do
+            DisableControlAction(0, mapping.increase, true)
+            DisableControlAction(0, mapping.decrease, true)
+        end
+        DisableControlAction(0, 21, true) -- Shift (für Shift-Combos)
 
         if menuOpen then
             DisableControlAction(0, 1, true)
             DisableControlAction(0, 2, true)
             DisableControlAction(0, 24, true)
             DisableControlAction(0, 25, true)
-            DisableControlAction(0, 74, true)
             DisableControlAction(0, 75, true)
             DisableControlAction(0, 106, true)
-            DisableControlAction(0, 200, true) -- ESC
+            DisableControlAction(0, 200, true)
         end
 
         -- Distance check
@@ -139,39 +137,29 @@ end
 function HandleControls()
     if not currentConfig then return end
 
-    -- Handle BONE controls
+    -- Handle BONE controls (automatisch aus Config!)
     if currentConfig.bones then
         for i, bone in ipairs(currentConfig.bones) do
-            local delta = 0.0
-            local group = bone.controlGroup or ''
+            local group = bone.controlGroup
+            if not group then goto continue end
 
-            -- NUR nach controlGroup zuordnen, NICHT nach Index!
-            if group == 'turret' or group == 'base' then
-                -- Numpad 4 / 6
-                if IsDisabledControlPressed(0, Config.Keys.RotateLeft) then
-                    delta = -1.0
-                elseif IsDisabledControlPressed(0, Config.Keys.RotateRight) then
+            local mapping = Config.ControlGroups[group]
+            if not mapping then goto continue end
+
+            local delta = 0.0
+
+            if mapping.shift then
+                -- Shift + Taste
+                if IsDisabledControlPressed(0, 21) and IsDisabledControlPressed(0, mapping.increase) then
                     delta = 1.0
-                end
-            elseif group == 'ladder' or group == 'crane' or group == 'arm' or group == 'lift' then
-                -- Pfeil Hoch / Runter
-                if IsDisabledControlPressed(0, Config.Keys.IncreaseControl) then
-                    delta = 1.0
-                elseif IsDisabledControlPressed(0, Config.Keys.DecreaseControl) then
+                elseif IsDisabledControlPressed(0, 21) and IsDisabledControlPressed(0, mapping.decrease) then
                     delta = -1.0
                 end
-            elseif group == 'extend' or group == 'winch' then
-                -- Q / Z (disabled)
-                if IsDisabledControlPressed(0, 85) then
+            else
+                -- Normale Taste
+                if IsDisabledControlPressed(0, mapping.increase) then
                     delta = 1.0
-                elseif IsDisabledControlPressed(0, 48) then
-                    delta = -1.0
-                end
-            elseif group == 'basket' then
-                -- Shift+Q / Shift+Z
-                if IsDisabledControlPressed(0, 21) and IsDisabledControlPressed(0, 85) then
-                    delta = 1.0
-                elseif IsDisabledControlPressed(0, 21) and IsDisabledControlPressed(0, 48) then
+                elseif IsDisabledControlPressed(0, mapping.decrease) then
                     delta = -1.0
                 end
             end
@@ -179,6 +167,8 @@ function HandleControls()
             if delta ~= 0.0 then
                 UpdateControl(currentVehicle, i, delta)
             end
+
+            ::continue::
         end
     end
 

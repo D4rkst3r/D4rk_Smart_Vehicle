@@ -4,10 +4,10 @@ let controlStates = {};
 let stabilizersDeployed = false;
 let waterActive = false;
 let inCage = false;
-let escHandlerEnabled = false; // Verhindert Auto-Fire
-let escPressCount = 0; // Zählt ESC Drücke
+let escHandlerEnabled = false;
+let escPressCount = 0;
+let groupLabels = {}; // Labels aus Config.ControlGroups
 
-// Check if jQuery is loaded
 if (typeof $ === "undefined") {
   console.error("[D4rk_Smart NUI] jQuery is NOT loaded!");
 } else {
@@ -20,7 +20,6 @@ if (typeof $ === "undefined") {
 window.addEventListener("message", function (event) {
   const data = event.data;
 
-  // Nur wichtige Actions loggen, nicht spam-artige
   if (data.action !== "showCagePrompt" && data.action !== "updateControl") {
     console.log("[D4rk_Smart NUI] Received message:", data.action);
   }
@@ -28,6 +27,10 @@ window.addEventListener("message", function (event) {
   switch (data.action) {
     case "openPanel":
       console.log("[D4rk_Smart NUI] Opening panel with vehicle:", data.vehicle);
+      // ← GEÄNDERT: Labels aus Config übernehmen
+      if (data.groupLabels) {
+        groupLabels = data.groupLabels;
+      }
       openPanel(data.vehicle);
       break;
     case "closePanel":
@@ -71,11 +74,8 @@ function openPanel(vehicle) {
   console.log("Vehicle:", vehicle.label);
 
   currentVehicle = vehicle;
-
-  // Deaktiviere ESC Handler temporär (verhindert Auto-Fire Bug)
   escHandlerEnabled = false;
 
-  // Fallback: Direkt mit vanilla JS wenn jQuery nicht funktioniert
   const panel = document.getElementById("controlPanel");
   if (!panel) {
     console.error("❌ Panel element NOT found!");
@@ -83,23 +83,17 @@ function openPanel(vehicle) {
   }
 
   try {
-    // Set vehicle info
     $("#vehicleLabel").text(vehicle.label);
     $("#vehicleDescription").text(vehicle.description || "");
 
-    // Apply theme
     $("#controlPanel").removeClass("theme-fire theme-police theme-utility");
     if (vehicle.ui && vehicle.ui.theme) {
       $("#controlPanel").addClass("theme-" + vehicle.ui.theme);
     }
 
-    // Build control groups
     buildControlGroups(vehicle.bones);
-
-    // Setup quick actions
     setupQuickActions(vehicle);
 
-    // Show panel - BEIDE Methoden verwenden!
     $("#controlPanel").removeClass("hidden").css("display", "block");
     panel.classList.remove("hidden");
     panel.style.display = "block";
@@ -107,17 +101,14 @@ function openPanel(vehicle) {
     console.log("✅ Panel display:", panel.style.display);
     console.log("✅ Has hidden class:", panel.classList.contains("hidden"));
 
-    // Send ready message
     $.post("https://D4rk_Smart_Vehicle/panelReady", JSON.stringify({}));
 
-    // Aktiviere ESC Handler nach 1000ms (verhindert FiveM Auto-Fire Bug)
     setTimeout(() => {
       escHandlerEnabled = true;
       console.log("✅ ESC Handler aktiviert");
-    }, 1000); // 1 Sekunde statt 500ms!
+    }, 1000);
   } catch (error) {
     console.error("❌ Error in openPanel:", error);
-    // Fallback: Force show with vanilla JS
     panel.classList.remove("hidden");
     panel.style.display = "block";
     panel.style.visibility = "visible";
@@ -127,9 +118,7 @@ function openPanel(vehicle) {
 
 function closePanel() {
   console.log("=== CLOSING PANEL ===");
-
-  escHandlerEnabled = false; // Deaktiviere ESC Handler
-
+  escHandlerEnabled = false;
   $("#controlPanel").addClass("hidden").css("display", "none");
   $.post("https://D4rk_Smart_Vehicle/closePanel", JSON.stringify({}));
 }
@@ -137,7 +126,6 @@ function closePanel() {
 function buildControlGroups(bones) {
   const groups = {};
 
-  // Group bones by controlGroup
   bones.forEach((bone, index) => {
     const group = bone.controlGroup || "main";
     if (!groups[group]) {
@@ -146,7 +134,6 @@ function buildControlGroups(bones) {
     groups[group].push({ ...bone, index: index });
   });
 
-  // Build HTML
   let html = "";
   for (const [groupName, groupBones] of Object.entries(groups)) {
     html += `
@@ -174,38 +161,30 @@ function buildControlGroups(bones) {
   $("#controlGroups").html(html);
 }
 
+// ← GEÄNDERT: Dynamische Labels aus Config.ControlGroups
 function getGroupLabel(group) {
-  const labels = {
-    main: "Hauptsteuerung",
-    turret: "Turm",
-    crane: "Kran",
-    ladder: "Leiter",
-    extend: "Ausfahren", // ← NEU
-    basket: "Korb",
-    arm: "Ausleger",
-    winch: "Winde",
-    lift: "Hebebühne",
-    base: "Basis",
-  };
-  return labels[group] || group.toUpperCase();
+  // 1. Aus Config.ControlGroups (dynamisch via Lua mitgeschickt)
+  if (groupLabels[group] && groupLabels[group].label) {
+    return groupLabels[group].label;
+  }
+
+  // 2. Fallback: Erster Buchstabe gross
+  return group.charAt(0).toUpperCase() + group.slice(1);
 }
 
 function setupQuickActions(vehicle) {
-  // Stabilizers
   if (vehicle.stabilizers && vehicle.stabilizers.enabled) {
     $("#stabilizersBtn").removeClass("hidden");
   } else {
     $("#stabilizersBtn").addClass("hidden");
   }
 
-  // Water Monitor
   if (vehicle.waterMonitor && vehicle.waterMonitor.enabled) {
     $("#waterBtn").removeClass("hidden");
   } else {
     $("#waterBtn").addClass("hidden");
   }
 
-  // Cage
   if (vehicle.cage && vehicle.cage.enabled) {
     $("#cageBtn").removeClass("hidden");
     $("#cageStatus").show();
@@ -219,13 +198,12 @@ function setupQuickActions(vehicle) {
 // UPDATE FUNCTIONS
 // ============================================
 function updateControl(index, value) {
-  var jsIndex = index - 1; // Lua zählt ab 1, JS ab 0
+  var jsIndex = index - 1;
 
   if (!currentVehicle || !currentVehicle.bones[jsIndex]) return;
 
   const bone = currentVehicle.bones[jsIndex];
   const range = bone.max - bone.min;
-
   const percentage = (value - bone.min) / range;
 
   $(`#control-value-${jsIndex}`).text(value.toFixed(1));
@@ -290,8 +268,6 @@ function showHud(vehicle) {
   currentVehicle = vehicle;
 
   $("#hudVehicleName").text(vehicle.label);
-
-  // Build HUD controls
   buildHudControls(vehicle.bones);
 
   $("#compactHud").removeClass("hidden").css("display", "block");
@@ -304,7 +280,6 @@ function hideHud() {
 function buildHudControls(bones) {
   let html = "";
 
-  // Show only first 3-4 most important controls
   bones.slice(0, 4).forEach((bone, index) => {
     html += `
             <div class="hud-control-item">
@@ -371,7 +346,7 @@ function resetAll() {
 }
 
 // ============================================
-// KEYBOARD HANDLERS (FIX #8: ESC funktioniert wieder)
+// KEYBOARD HANDLERS
 // ============================================
 document.addEventListener("keydown", function (e) {
   if (e.key === "Escape" || e.keyCode === 27) {
@@ -386,5 +361,4 @@ document.addEventListener("keydown", function (e) {
   }
 });
 
-// Prevent right click
 document.addEventListener("contextmenu", (event) => event.preventDefault());
