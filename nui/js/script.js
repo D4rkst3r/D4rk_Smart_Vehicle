@@ -161,7 +161,7 @@ function buildControlGroups(bones) {
                             <span class="control-value" id="control-value-${bone.index}">0.0</span>
                         </div>
                         <div class="control-slider">
-                            <div class="control-slider-fill" id="control-fill-${bone.index}" style="width: 0%"></div>
+                            <div class="control-slider-fill" id="control-fill-${bone.index}"></div>
                         </div>
                     </div>
                 `,
