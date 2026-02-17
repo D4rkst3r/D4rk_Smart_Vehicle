@@ -1,6 +1,6 @@
 -- D4rk Smart Vehicle - Collision Objects (PROP-BASED)
--- VERSION 2.2 - SafeGetEntity Fix
--- Begehbare Objekte die an der Prop-Kette hängen
+-- VERSION 2.3 - POSITION-FOLLOW statt Attach
+-- Props folgen per SetEntityCoords → keine Physik-Übertragung auf Fahrzeug!
 local collisionProps = {} -- per vehicle netId
 
 -- ============================================
@@ -22,13 +22,18 @@ function SpawnCollisionObjects(vehicle, vehicleName)
             local modelHash = GetHashKey(obj.model)
 
             if RequestModelSync(modelHash) then
-                local prop = CreateObject(modelHash, vehicleCoords.x, vehicleCoords.y, vehicleCoords.z + 15.0, true, true,
-                    false)
+                local prop = CreateObject(modelHash,
+                    vehicleCoords.x, vehicleCoords.y, vehicleCoords.z + 15.0,
+                    false, -- networkObject (lokal, kein Netzwerk nötig)
+                    true,  -- netMissionEntity
+                    false  -- doorFlag
+                )
 
                 if DoesEntityExist(prop) then
-                    -- WICHTIG: Collision AN für begehbare Objekte!
+                    -- Collision AN für begehbare Objekte
                     SetEntityCollision(prop, true, true)
                     SetEntityInvincible(prop, true)
+                    FreezeEntityPosition(prop, true)
 
                     -- Sichtbarkeit
                     if obj.invisible then
@@ -36,28 +41,16 @@ function SpawnCollisionObjects(vehicle, vehicleName)
                         SetEntityVisible(prop, false, false)
                     end
 
-                    -- Attach target bestimmen
-                    local targetEntity, targetBoneIdx = GetCollisionAttachTarget(vehicle, netId, obj)
-
-                    local offset = obj.offset or vector3(0.0, 0.0, 0.0)
-                    local rotation = obj.rotation or vector3(0.0, 0.0, 0.0)
-
-                    AttachEntityToEntity(
-                        prop, targetEntity, targetBoneIdx,
-                        offset.x, offset.y, offset.z,
-                        rotation.x, rotation.y, rotation.z,
-                        false, true, true, -- collision = true!
-                        false, 2, true
-                    )
-
+                    -- NICHT attachen! Nur speichern
                     collisionProps[netId][i] = {
                         entity = prop,
-                        config = obj
+                        config = obj,
+                        vehicle = vehicle
                     }
 
                     if Config.Debug then
-                        print(string.format('[D4rk_Smart] Collision obj #%d spawned: %s (collision=%s)',
-                            i, obj.model, tostring(not obj.invisible)))
+                        print(string.format('[D4rk_Smart] Collision obj #%d spawned (unattached): %s (invisible=%s)',
+                            i, obj.model, tostring(obj.invisible or false)))
                     end
                 end
 
@@ -65,36 +58,78 @@ function SpawnCollisionObjects(vehicle, vehicleName)
             end
         end
     end
+
+    -- Position-Thread starten: Props folgen dem Parent OHNE Attach
+    StartCollisionFollowThread(netId, vehicle)
 end
 
-function GetCollisionAttachTarget(vehicle, netId, objConfig)
-    local attachTo = objConfig.attachTo or 'vehicle'
+-- ============================================
+-- FOLLOW THREAD: Props folgen per SetEntityCoords
+-- Keine Physik-Übertragung auf das Fahrzeug!
+-- ============================================
+function StartCollisionFollowThread(netId, vehicle)
+    Citizen.CreateThread(function()
+        while collisionProps[netId] and DoesEntityExist(vehicle) do
+            Wait(0) -- Jeden Frame updaten für smooth
 
-    if attachTo == 'vehicle' then
-        local boneIdx = 0
-        if objConfig.attachBone and objConfig.attachBone ~= '' then
-            local idx = GetEntityBoneIndexByName(vehicle, objConfig.attachBone)
-            if idx ~= -1 then boneIdx = idx end
-        end
-        return vehicle, boneIdx
-    else
-        -- An Bone-Prop hängen
-        local parentIndex = tonumber(attachTo)
-        if parentIndex and spawnedBoneProps[netId] and spawnedBoneProps[netId][parentIndex] then
-            local parentProp = spawnedBoneProps[netId][parentIndex]
-            if parentProp and parentProp.entity and DoesEntityExist(parentProp.entity) then
-                return parentProp.entity, 0
+            if not collisionProps[netId] then return end
+
+            for i, propData in pairs(collisionProps[netId]) do
+                if propData and propData.entity and DoesEntityExist(propData.entity) then
+                    local obj = propData.config
+
+                    -- Parent bestimmen (Fahrzeug oder Bone-Prop)
+                    local parentEntity = vehicle
+                    local attachTo = obj.attachTo or 'vehicle'
+
+                    if attachTo ~= 'vehicle' then
+                        local parentIndex = tonumber(attachTo)
+                        if parentIndex and spawnedBoneProps[netId] and spawnedBoneProps[netId][parentIndex] then
+                            local parentProp = spawnedBoneProps[netId][parentIndex]
+                            if parentProp and parentProp.entity and DoesEntityExist(parentProp.entity) then
+                                parentEntity = parentProp.entity
+                            end
+                        end
+                    end
+
+                    -- Offset relativ zum Parent in Weltkoordinaten umrechnen
+                    local offset = obj.offset or vector3(0.0, 0.0, 0.0)
+                    local rotation = obj.rotation or vector3(0.0, 0.0, 0.0)
+
+                    local worldPos = GetOffsetFromEntityInWorldCoords(parentEntity, offset.x, offset.y, offset.z)
+                    local parentRot = GetEntityRotation(parentEntity, 2)
+
+                    -- Prop positionieren (KEIN Attach → keine Physik!)
+                    SetEntityCoordsNoOffset(propData.entity,
+                        worldPos.x, worldPos.y, worldPos.z,
+                        false, false, false)
+
+                    SetEntityRotation(propData.entity,
+                        parentRot.x + rotation.x,
+                        parentRot.y + rotation.y,
+                        parentRot.z + rotation.z,
+                        2, true)
+
+                    FreezeEntityPosition(propData.entity, true)
+                end
             end
         end
-        return vehicle, 0
-    end
+
+        -- Thread beendet (Fahrzeug gelöscht) → Cleanup
+        if collisionProps[netId] then
+            DeleteCollisionObjects(netId)
+        end
+    end)
 end
 
+-- ============================================
+-- DELETE
+-- ============================================
 function DeleteCollisionObjects(netId)
     if not collisionProps[netId] then return end
     for i, propData in pairs(collisionProps[netId]) do
         if propData and propData.entity and DoesEntityExist(propData.entity) then
-            DetachEntity(propData.entity, false, false)
+            FreezeEntityPosition(propData.entity, false)
             DeleteEntity(propData.entity)
         end
     end
@@ -102,7 +137,7 @@ function DeleteCollisionObjects(netId)
 end
 
 -- ============================================
--- CLEANUP THREAD (FIX: SafeGetEntity statt NetworkGetEntityFromNetworkId)
+-- CLEANUP THREAD
 -- ============================================
 Citizen.CreateThread(function()
     while true do
