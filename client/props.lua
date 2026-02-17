@@ -1,4 +1,5 @@
 -- D4rk Smart Vehicle - Prop Management System (Hybrid)
+-- VERSION 2.5 - Collision Fix: Default OFF für attached Props
 -- Spawns and attaches props to vehicles
 
 local spawnedProps = {}
@@ -71,7 +72,7 @@ function SpawnProp(vehicle, propConfig, vehicleName)
 
     if propConfig.attachTo and propConfig.attachTo ~= "vehicle" then
         -- Attach to bone
-        attachBone = GetBoneIndex(vehicle, propConfig.attachTo)
+        attachBone = GetEntityBoneIndexByName(vehicle, propConfig.attachTo)
         if attachBone == -1 then
             if Config.Debug then
                 print('^3[Props] Bone not found: ' .. propConfig.attachTo .. '^7')
@@ -110,12 +111,10 @@ function SpawnProp(vehicle, propConfig, vehicleName)
         return nil
     end
 
-    -- Set properties
-    SetEntityCollision(prop, not propConfig.disableCollisions, true)
-
-    if propConfig.keepCollision then
-        SetEntityCollision(prop, true, true)
-    end
+    -- FIX: Collision default AUS für attached Props!
+    -- Attached Props mit Collision lassen das Fahrzeug fliegen
+    SetEntityCollision(prop, false, false)
+    SetEntityNoCollisionEntity(prop, vehicle, false)
 
     if propConfig.toggleOffInitially then
         SetEntityVisible(prop, false, false)
@@ -124,6 +123,7 @@ function SpawnProp(vehicle, propConfig, vehicleName)
     end
 
     SetEntityAlpha(prop, 255, false)
+    SetEntityInvincible(prop, true)
 
     -- Attach to vehicle/bone
     local rotation = propConfig.defaultRotation or propConfig.rotation or vector3(0, 0, 0)
@@ -134,7 +134,7 @@ function SpawnProp(vehicle, propConfig, vehicleName)
         attachBone,
         offset.x, offset.y, offset.z,
         rotation.x, rotation.y, rotation.z,
-        false, false, true, false, 2, true
+        false, false, false, false, 2, true -- p11 (collision) = false!
     )
 
     SetModelAsNoLongerNeeded(modelHash)
@@ -258,7 +258,7 @@ function UpdatePropControl(vehicle, propId, controlType, axis, amount)
             propData.attachBone,
             newOffset.x, newOffset.y, newOffset.z,
             state.rotation.x, state.rotation.y, state.rotation.z,
-            false, false, true, false, 2, true
+            false, false, false, false, 2, true -- collision = false!
         )
     elseif controlType == "rotate" then
         -- Update rotation
@@ -298,7 +298,7 @@ function UpdatePropControl(vehicle, propId, controlType, axis, amount)
             propData.attachBone,
             state.offset.x, state.offset.y, state.offset.z,
             newRotation.x, newRotation.y, newRotation.z,
-            false, false, true, false, 2, true
+            false, false, false, false, 2, true -- collision = false!
         )
     end
 
@@ -342,15 +342,17 @@ CreateThread(function()
         local vehicles = GetGamePool('CVehicle')
 
         for _, vehicle in ipairs(vehicles) do
-            local vehicleName = IsVehicleConfigured(vehicle)
+            if DoesEntityExist(vehicle) then
+                local vehicleName = IsVehicleConfigured(vehicle)
 
-            if vehicleName then
-                local netId = SafeGetNetId(vehicle)
-                if not netId then return end
-
-                -- Spawn props if not already spawned
-                if not spawnedProps[netId] then
-                    SpawnVehicleProps(vehicle, vehicleName)
+                if vehicleName then
+                    local netId = SafeGetNetId(vehicle)
+                    if netId then
+                        -- Spawn props if not already spawned
+                        if not spawnedProps[netId] then
+                            SpawnVehicleProps(vehicle, vehicleName)
+                        end
+                    end
                 end
             end
         end
@@ -358,13 +360,20 @@ CreateThread(function()
         -- Cleanup deleted vehicles
         local toClean = {}
         for netId, _ in pairs(spawnedProps) do
-            local vehicle = NetworkGetEntityFromNetworkId(netId)
-            if not vehicle or vehicle == 0 or not DoesEntityExist(vehicle) then
+            if not SafeGetEntity(netId) then
                 table.insert(toClean, netId)
             end
         end
         for _, netId in ipairs(toClean) do
-            RemoveVehicleProps(vehicle) -- oder wie die Cleanup-Funktion heißt
+            if spawnedProps[netId] then
+                for _, propData in ipairs(spawnedProps[netId]) do
+                    if propData.entity and DoesEntityExist(propData.entity) then
+                        DeleteEntity(propData.entity)
+                    end
+                end
+                spawnedProps[netId] = nil
+                propStates[netId] = nil
+            end
         end
     end
 end)
@@ -390,7 +399,7 @@ AddEventHandler('D4rk_Smart:SyncPropClient', function(netId, propId, state)
         propData.attachBone,
         state.offset.x, state.offset.y, state.offset.z,
         state.rotation.x, state.rotation.y, state.rotation.z,
-        false, false, true, false, 2, true
+        false, false, false, false, 2, true -- collision = false!
     )
 
     SetEntityVisible(propData.entity, state.visible, false)
@@ -399,26 +408,22 @@ AddEventHandler('D4rk_Smart:SyncPropClient', function(netId, propId, state)
 end)
 
 -- ============================================
--- CLEANUP
+-- CLEANUP ON STOP
 -- ============================================
-local toClean = {}
-for netId, _ in pairs(spawnedProps) do
-    if not SafeGetEntity(netId) then
-        table.insert(toClean, netId)
-    end
-end
-for _, netId in ipairs(toClean) do
-    -- Props direkt löschen
-    if spawnedProps[netId] then
-        for _, propData in ipairs(spawnedProps[netId]) do
-            if propData.entity and DoesEntityExist(propData.entity) then
-                DeleteEntity(propData.entity)
+AddEventHandler('onResourceStop', function(resourceName)
+    if GetCurrentResourceName() ~= resourceName then return end
+    for netId, props in pairs(spawnedProps) do
+        if props then
+            for _, propData in ipairs(props) do
+                if propData.entity and DoesEntityExist(propData.entity) then
+                    DeleteEntity(propData.entity)
+                end
             end
         end
-        spawnedProps[netId] = nil
-        propStates[netId] = nil
     end
-end
+    spawnedProps = {}
+    propStates = {}
+end)
 
 -- ============================================
 -- EXPORTS
