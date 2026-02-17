@@ -32,7 +32,8 @@ function SpawnStabilizerProps(vehicle, vehicleName)
         local prop = CreateObject(modelHash, vehicleCoords.x, vehicleCoords.y, vehicleCoords.z + 15.0, true, true, false)
 
         if DoesEntityExist(prop) then
-            SetEntityCollision(prop, true, true)
+            SetEntityCollision(prop, false, false)
+            SetEntityNoCollisionEntity(prop, vehicle, false)
             SetEntityInvincible(prop, true)
 
             -- Initial: eingefahren (offset 0)
