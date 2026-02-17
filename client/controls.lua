@@ -294,22 +294,47 @@ CreateThread(function()
             end
         end
 
-        -- FIX #1: Standing near vehicle → NÄCHSTES Fahrzeug statt erstes!
+        -- FIX: Standing near vehicle → Nur wenn auf dem richtigen Prop!
         if not inVehicle and Config.UseStandingControl and not controlActive then
             local vehicles = GetGamePool('CVehicle')
             local closestDist = Config.MaxStandingDistance
 
             for _, vehicle in ipairs(vehicles) do
                 if DoesEntityExist(vehicle) then
-                    local dist = #(playerCoords - GetEntityCoords(vehicle))
-                    if dist < closestDist then
-                        local vehicleName = IsVehicleConfigured(vehicle)
-                        if vehicleName then
-                            nearbyVehicle = vehicle
-                            nearbyVehicleName = vehicleName
-                            closestDist = dist
-                            mode = 'standing'
-                            -- KEIN break! Weitersuchen nach näherem
+                    local vehicleName = IsVehicleConfigured(vehicle)
+                    if vehicleName then
+                        local config = GetVehicleConfig(vehicleName)
+                        local netId = SafeGetNetId(vehicle)
+
+                        -- Prüfe ob standingControl konfiguriert ist
+                        if config and config.standingControl and config.standingControl.requireBoneProp and netId then
+                            -- Distanz zum spezifischen Bone-Prop checken
+                            local boneIndex = config.standingControl.requireBoneProp
+                            local maxDist = config.standingControl.maxDistance or 2.0
+
+                            if spawnedBoneProps[netId] and spawnedBoneProps[netId][boneIndex] then
+                                local boneProp = spawnedBoneProps[netId][boneIndex]
+                                if boneProp and boneProp.entity and DoesEntityExist(boneProp.entity) then
+                                    local propCoords = GetEntityCoords(boneProp.entity)
+                                    local dist = #(playerCoords - propCoords)
+
+                                    if dist < maxDist and dist < closestDist then
+                                        nearbyVehicle = vehicle
+                                        nearbyVehicleName = vehicleName
+                                        closestDist = dist
+                                        mode = 'standing'
+                                    end
+                                end
+                            end
+                        else
+                            -- Fallback: Altes Verhalten (Distanz zum Fahrzeug)
+                            local dist = #(playerCoords - GetEntityCoords(vehicle))
+                            if dist < closestDist then
+                                nearbyVehicle = vehicle
+                                nearbyVehicleName = vehicleName
+                                closestDist = dist
+                                mode = 'standing'
+                            end
                         end
                     end
                 end

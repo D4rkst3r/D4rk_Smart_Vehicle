@@ -72,6 +72,11 @@ Config.Vehicles = {
         label = 'Feuerwehr Drehleiter',
         description = 'Drehleiter mit Rettungskorb und Wasserwerfer',
 
+        standingControl = {
+            requireBoneProp = 1,   -- Muss auf Bone-Prop #1 (ladder_base) stehen
+            maxDistance     = 1.0, -- Max Abstand zum Prop
+        },
+
         -- ======================
         -- BONES (Prop-basiert!)
         -- ======================
