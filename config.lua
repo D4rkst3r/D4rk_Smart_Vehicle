@@ -67,7 +67,7 @@ Config.Vehicles = {
     -- ==========================================
     -- FIRE DEPARTMENT - LADDER TRUCK
     -- ==========================================
-    ['firetruk'] = {
+    ['ladder'] = {
         type = 'ladder',
         label = 'Feuerwehr Drehleiter',
         description = 'Drehleiter mit Rettungskorb und Wasserwerfer',
@@ -95,10 +95,10 @@ Config.Vehicles = {
                 default         = 0.0,
                 speed           = 0.09,
                 controlGroup    = 'turret',
-                propModel       = 'prop_roadcone02a',
+                propModel       = 'ladder_base',
                 attachTo        = 'vehicle',
                 attachBone      = 'bodyshell',
-                defaultOffset   = vector3(0.0, -1.0, 2.5),
+                defaultOffset   = vector3(0.0, 0.0, 0),
                 defaultRotation = vector3(0.0, 0.0, 0.0),
             },
             -- #2: Leiter Anheben → Pfeil Hoch/Runter
@@ -113,7 +113,7 @@ Config.Vehicles = {
                 speed           = 0.05,
                 controlGroup    = 'ladder',
                 soundEffect     = 'hydraulic',
-                propModel       = 'prop_roadcone02a',
+                propModel       = 'ladder_main_0',
                 attachTo        = '1',
                 defaultOffset   = vector3(0.0, 0.0, 0.5),
                 defaultRotation = vector3(0.0, 0.0, 0.0),
@@ -125,28 +125,28 @@ Config.Vehicles = {
                 type            = 'position',
                 axis            = 'y',
                 min             = 0.0,
-                max             = 8.0,
+                max             = 4.7,
                 default         = 0.0,
                 speed           = 0.02,
                 controlGroup    = 'extend',
                 soundEffect     = 'hydraulic',
-                propModel       = 'prop_roadcone02a',
+                propModel       = 'ladder_main_1',
                 attachTo        = '2',
                 defaultOffset   = vector3(0.0, 0.5, 0.0),
                 defaultRotation = vector3(0.0, 0.0, 0.0),
             },
-            -- #4: Korb Rotation → Shift+Q/Z
+            -- #4: Korb neigen → Shift+Q/Z
             {
                 name            = 'korb',
                 label           = 'Korb Rotation',
                 type            = 'rotation',
-                axis            = 'z',
-                min             = -180.0,
-                max             = 180.0,
+                axis            = 'x',
+                min             = -45.0,
+                max             = 45.0,
                 default         = 0.0,
                 speed           = 0.3,
                 controlGroup    = 'basket',
-                propModel       = 'prop_roadcone02a',
+                propModel       = 'ladder_bucket',
                 attachTo        = '3',
                 defaultOffset   = vector3(0.0, 0.0, 0.0),
                 defaultRotation = vector3(0.0, 0.0, 0.0),
@@ -181,7 +181,7 @@ Config.Vehicles = {
         stabilizers = {
             enabled      = true,
             required     = false,
-            propModel    = 'prop_roadcone02a',
+            propModel    = 'outr_down_l1',
             maxExtension = 1.5,
             animDuration = 2000,
             liftHeight   = 0.4,
@@ -198,16 +198,12 @@ Config.Vehicles = {
         -- CAGE (Prop-basiert, an Leiter-Spitze #3)
         -- ======================
         cage = {
-            enabled         = true,
-            propModel       = 'prop_roadcone02a',
-            attachTo        = '3',
-            offset          = vector3(0.0, 0.5, 0.0),
-            rotation        = vector3(0.0, 0.0, 0.0),
-            playerOffset    = vector3(0.0, 0.0, 0.3),
-            enterDistance   = 3.0,
-            canControl      = true,
-            maxOccupants    = 2,
-            enableCollision = true,
+            enabled       = true,
+            useBoneProp   = 4, -- Direkt an Korb-Prop #4
+            playerOffset  = vector3(0.0, 0.0, 0.3),
+            enterDistance = 3.0,
+            canControl    = true,
+            maxOccupants  = 2,
         },
 
         -- ======================
@@ -215,8 +211,8 @@ Config.Vehicles = {
         -- ======================
         waterMonitor = {
             enabled        = true,
-            propModel      = 'prop_roadcone02a',
-            attachTo       = '3',
+            propModel      = '',
+            attachTo       = '4', -- NEU: An Bone-Prop #4 (Korb) befestigt
             offset         = vector3(0.0, 1.0, 0.3),
             rotation       = vector3(0.0, 0.0, 0.0),
             particleEffect = 'core',
@@ -247,11 +243,25 @@ Config.Vehicles = {
             enabled = true,
             objects = {
                 {
-                    model     = 'prop_roadcone02a',
-                    attachTo  = '2',
-                    offset    = vector3(0.0, 0.0, -0.3),
+                    model     = 'ladder_main_0', -- Gleiches Modell wie Korb!
+                    attachTo  = '1',
+                    offset    = vector3(0.0, 0.0, 0.0),
                     rotation  = vector3(0.0, 0.0, 0.0),
-                    invisible = false,
+                    invisible = true, -- Unsichtbar (visuell ist der Bone-Prop)
+                },
+                {
+                    model     = 'ladder_main_1', -- Gleiches Modell wie Korb!
+                    attachTo  = '2',
+                    offset    = vector3(0.0, 0.0, 0.0),
+                    rotation  = vector3(0.0, 0.0, 0.0),
+                    invisible = true, -- Unsichtbar (visuell ist der Bone-Prop)
+                },
+                {
+                    model     = 'ladder_bucket', -- Gleiches Modell wie Korb!
+                    attachTo  = '3',
+                    offset    = vector3(0.0, 0.0, 0.0),
+                    rotation  = vector3(0.0, 0.0, 0.0),
+                    invisible = true, -- Unsichtbar (visuell ist der Bone-Prop)
                 },
             }
         },

@@ -793,7 +793,17 @@ end)
 
 -- ForceRelease Handler
 RegisterNetEvent('D4rk_Smart:ForceRelease')
-AddEventHandler('D4rk_Smart:ForceRelease', function()
+AddEventHandler('D4rk_Smart:ForceRelease', function(netId)
+    -- Nur releasen wenn WIR dieses Fahrzeug steuern
+    if not currentVehicle then return end
+
+    local myNetId = SafeGetNetId(currentVehicle)
+    if not myNetId then return end
+
+    -- netId = nil (alter Aufruf ohne Parameter) → alles releasen
+    -- netId vorhanden → nur gezielt releasen
+    if netId and myNetId ~= netId then return end
+
     if menuOpen then
         CloseControlPanel()
     end

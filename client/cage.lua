@@ -1,4 +1,5 @@
 -- D4rk Smart Vehicle - Cage/Basket System (PROP-BASED)
+-- VERSION 2.2 - MULTIPLAYER FIXES + SafeGetNetId + Proximity Fix
 local cageProps = {}
 local cageOccupants = {}
 local playerInCage = false
@@ -8,20 +9,58 @@ local playerInCage = false
 -- ============================================
 function SpawnCageProp(vehicle, vehicleName)
     local netId = SafeGetNetId(vehicle)
-    if not netId then return end
+    if not netId then return nil end
     if cageProps[netId] then return cageProps[netId] end
 
     local config = GetVehicleConfig(vehicleName)
     if not config or not config.cage or not config.cage.enabled then return nil end
 
     local cage = config.cage
-    if not cage.propModel or cage.propModel == '' then
-        if Config.Debug then
-            print('[D4rk_Smart] Cage has no propModel - skipped')
+
+    -- Option 1: useBoneProp → direkte Referenz
+    if cage.useBoneProp then
+        local boneIndex = cage.useBoneProp
+        if spawnedBoneProps[netId] and spawnedBoneProps[netId][boneIndex] then
+            local boneProp = spawnedBoneProps[netId][boneIndex]
+            if boneProp and boneProp.entity and DoesEntityExist(boneProp.entity) then
+                cageProps[netId] = {
+                    entity = boneProp.entity,
+                    config = cage,
+                    isBoneRef = true
+                }
+                return cageProps[netId]
+            end
         end
         return nil
     end
 
+    -- Option 2: Kein propModel → Parent-Prop als Referenz nutzen
+    if not cage.propModel or cage.propModel == '' then
+        local attachTo = cage.attachTo
+        if attachTo and attachTo ~= 'vehicle' then
+            local parentIndex = tonumber(attachTo)
+            if parentIndex and spawnedBoneProps[netId] and spawnedBoneProps[netId][parentIndex] then
+                local parentProp = spawnedBoneProps[netId][parentIndex]
+                if parentProp and parentProp.entity and DoesEntityExist(parentProp.entity) then
+                    cageProps[netId] = {
+                        entity = parentProp.entity,
+                        config = cage,
+                        isBoneRef = true -- NICHT löschen!
+                    }
+                    if Config.Debug then
+                        print('[D4rk_Smart] Cage using parent bone prop #' .. parentIndex)
+                    end
+                    return cageProps[netId]
+                end
+            end
+        end
+        if Config.Debug then
+            print('^3[D4rk_Smart] Cage: no prop and no valid attachTo^7')
+        end
+        return nil
+    end
+
+    -- Option 3: Eigenes propModel → altes Verhalten (spawnt extra Prop)
     local modelHash = GetHashKey(cage.propModel)
     if not RequestModelSync(modelHash) then return nil end
 
@@ -34,9 +73,7 @@ function SpawnCageProp(vehicle, vehicleName)
     SetEntityInvincible(prop, true)
     SetModelAsNoLongerNeeded(modelHash)
 
-    -- Attach to correct target
     local targetEntity, targetBoneIdx = GetCageAttachTarget(vehicle, netId, cage)
-
     local offset = cage.offset or vector3(0.0, 0.0, 0.5)
     local rotation = cage.rotation or vector3(0.0, 0.0, 0.0)
 
@@ -51,10 +88,6 @@ function SpawnCageProp(vehicle, vehicleName)
         entity = prop,
         config = cage
     }
-
-    if Config.Debug then
-        print('[D4rk_Smart] Cage prop spawned: ' .. cage.propModel)
-    end
 
     return cageProps[netId]
 end
@@ -84,6 +117,11 @@ end
 
 function DeleteCageProp(netId)
     if not cageProps[netId] then return end
+    -- Bone-Referenz? NICHT löschen! Der Bone-Prop gehört main.lua
+    if cageProps[netId].isBoneRef then
+        cageProps[netId] = nil
+        return
+    end
     if cageProps[netId].entity and DoesEntityExist(cageProps[netId].entity) then
         DetachEntity(cageProps[netId].entity, false, false)
         DeleteEntity(cageProps[netId].entity)
@@ -97,6 +135,7 @@ end
 function EnterCage(vehicle, vehicleName)
     local netId = SafeGetNetId(vehicle)
     if not netId then return end
+
     local config = GetVehicleConfig(vehicleName)
     if not config or not config.cage or not config.cage.enabled then return end
 
@@ -125,7 +164,7 @@ function EnterCage(vehicle, vehicleName)
         0.0, 0.0, 0.0,
         false, true, false, true, 2, true
     )
-    playerInCage = true -- NEU
+    playerInCage = true
 
     -- Track occupant
     if not cageOccupants[netId] then cageOccupants[netId] = {} end
@@ -148,12 +187,11 @@ end
 
 function ExitCage(vehicle)
     local netId = SafeGetNetId(vehicle)
-    if not netId then return end
     local playerPed = PlayerPedId()
 
     -- Detach player
     DetachEntity(playerPed, true, false)
-    playerInCage = false -- NEU
+    playerInCage = false
 
     -- Safe ground position
     local playerCoords = GetEntityCoords(playerPed)
@@ -163,7 +201,7 @@ function ExitCage(vehicle)
     end
 
     -- Remove from occupants
-    if cageOccupants[netId] then
+    if netId and cageOccupants[netId] then
         for i, pid in ipairs(cageOccupants[netId]) do
             if pid == PlayerId() then
                 table.remove(cageOccupants[netId], i)
@@ -173,7 +211,9 @@ function ExitCage(vehicle)
     end
 
     -- Notify server
-    TriggerServerEvent('D4rk_Smart:ExitCage', netId)
+    if netId then
+        TriggerServerEvent('D4rk_Smart:ExitCage', netId)
+    end
 
     if controlMode == 'cage' then
         controlMode = nil
@@ -184,61 +224,60 @@ end
 
 -- ============================================
 -- CAGE PROXIMITY THREAD
--- Nur für Personen die NICHT am Fahrzeug sind
--- (z.B. auf einem Dach stehen und der Korb ist bei ihnen)
+-- FIX: distToVehicle > 5.0 verhindert E-Konflikt mit Panel
+-- FIX: SafeGetNetId statt NetworkGetNetworkIdFromEntity
 -- ============================================
 Citizen.CreateThread(function()
     while true do
         local sleep = 500
         local playerPed = PlayerPedId()
 
-        -- Einsteige-Check:
-        -- ✅ NICHT im Korb
-        -- ✅ NICHT im Fahrzeug
-        -- ✅ Panel NICHT offen (Panel hat eigenen Button)
-        -- ✅ Control NICHT aktiv
-        if not playerInCage
-            and not IsPedInAnyVehicle(playerPed, false)
-            and not menuOpen
-            and not controlActive
-        then
+        -- Nur Einsteige-Check wenn NICHT im Korb und NICHT im Fahrzeug
+        if not playerInCage and not IsPedInAnyVehicle(playerPed, false) then
             local playerCoords = GetEntityCoords(playerPed)
             local vehicles = GetGamePool('CVehicle')
 
             for _, vehicle in ipairs(vehicles) do
-                local vehicleName = IsVehicleConfigured(vehicle)
-                if vehicleName then
-                    local config = GetVehicleConfig(vehicleName)
-                    if config and config.cage and config.cage.enabled then
-                        local netId = SafeGetNetId(vehicle)
-                        if not netId then return end
-                        local cageData = cageProps[netId]
+                if DoesEntityExist(vehicle) then
+                    local vehicleName = IsVehicleConfigured(vehicle)
+                    if vehicleName then
+                        local config = GetVehicleConfig(vehicleName)
+                        if config and config.cage and config.cage.enabled then
+                            local netId = SafeGetNetId(vehicle)
+                            if netId then
+                                local cageData = cageProps[netId]
 
-                        if cageData and DoesEntityExist(cageData.entity) then
-                            local cageCoords = GetEntityCoords(cageData.entity)
-                            local vehicleCoords = GetEntityCoords(vehicle)
+                                if cageData and cageData.entity and DoesEntityExist(cageData.entity) then
+                                    local cageCoords = GetEntityCoords(cageData.entity)
+                                    local vehicleCoords = GetEntityCoords(vehicle)
 
-                            -- Distanz: Spieler zum KORB-PROP (nicht zum Fahrzeug!)
-                            local distToCage = #(playerCoords - cageCoords)
+                                    -- Distanz: Spieler zum KORB
+                                    local distToCage = #(playerCoords - cageCoords)
 
-                            -- Distanz: Spieler zum FAHRZEUG
-                            local distToVehicle = #(playerCoords - vehicleCoords)
+                                    -- Distanz: Spieler zum FAHRZEUG
+                                    local distToVehicle = #(playerCoords - vehicleCoords)
 
-                            -- Nur anzeigen wenn:
-                            -- Nah am Korb (<3m)
-                            -- UND weit weg vom Fahrzeug (>5m) → verhindert E-Konflikt
-                            if distToCage < (config.cage.enterDistance or 3.0)
-                                and distToVehicle > 5.0
-                            then
-                                sleep = 0
-                                AddTextEntry('D4RK_CAGE_ENTER', GetTranslation('enter_cage'))
-                                DisplayHelpTextThisFrame('D4RK_CAGE_ENTER', false)
+                                    -- Nur anzeigen wenn:
+                                    -- Nah am Korb (<3m)
+                                    -- UND weit weg vom Fahrzeug (>5m) → verhindert E-Konflikt
+                                    -- UND Panel ist nicht offen
+                                    -- UND nicht bereits am Steuern
+                                    if distToCage < (config.cage.enterDistance or 3.0)
+                                        and distToVehicle > 5.0
+                                        and not menuOpen
+                                        and not controlActive
+                                    then
+                                        sleep = 0
+                                        AddTextEntry('D4RK_CAGE_ENTER', GetTranslation('enter_cage'))
+                                        DisplayHelpTextThisFrame('D4RK_CAGE_ENTER', false)
 
-                                if IsControlJustPressed(0, Config.Keys.EnterCage) then
-                                    -- currentVehicle setzen damit ExitCage funktioniert
-                                    currentVehicle = vehicle
-                                    currentVehicleName = vehicleName
-                                    EnterCage(vehicle, vehicleName)
+                                        if IsControlJustPressed(0, Config.Keys.EnterCage) then
+                                            -- currentVehicle setzen damit ExitCage funktioniert
+                                            currentVehicle = vehicle
+                                            currentVehicleName = vehicleName
+                                            EnterCage(vehicle, vehicleName)
+                                        end
+                                    end
                                 end
                             end
                         end
@@ -264,4 +303,17 @@ Citizen.CreateThread(function()
     end
 end)
 
-
+-- ============================================
+-- CLEANUP
+-- ============================================
+AddEventHandler('onResourceStop', function(resourceName)
+    if GetCurrentResourceName() ~= resourceName then return end
+    for netId, _ in pairs(cageProps) do
+        DeleteCageProp(netId)
+    end
+    if playerInCage then
+        local playerPed = PlayerPedId()
+        DetachEntity(playerPed, true, false)
+        playerInCage = false
+    end
+end)
