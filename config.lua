@@ -98,7 +98,7 @@ Config.Vehicles = {
                 propModel       = 'ladder_base',
                 attachTo        = 'vehicle',
                 attachBone      = 'bodyshell',
-                defaultOffset   = vector3(0.0, 0.0, 0),
+                defaultOffset   = vector3(-0.02, -4.82, 1.64),
                 defaultRotation = vector3(0.0, 0.0, 0.0),
             },
             -- #2: Leiter Anheben → Pfeil Hoch/Runter
@@ -115,7 +115,7 @@ Config.Vehicles = {
                 soundEffect     = 'hydraulic',
                 propModel       = 'ladder_main_0',
                 attachTo        = '1',
-                defaultOffset   = vector3(0.0, 0.0, 0.5),
+                defaultOffset   = vector3(0.0, 0.5, 0.35),
                 defaultRotation = vector3(0.0, 0.0, 0.0),
             },
             -- #3: Leiter Ausfahren → Q/Z
@@ -132,7 +132,7 @@ Config.Vehicles = {
                 soundEffect     = 'hydraulic',
                 propModel       = 'ladder_main_1',
                 attachTo        = '2',
-                defaultOffset   = vector3(0.0, 0.5, 0.0),
+                defaultOffset   = vector3(0.0, 0.0, 0.0),
                 defaultRotation = vector3(0.0, 0.0, 0.0),
             },
             -- #4: Korb neigen → Shift+Q/Z
@@ -142,13 +142,13 @@ Config.Vehicles = {
                 type            = 'rotation',
                 axis            = 'x',
                 min             = -45.0,
-                max             = 45.0,
+                max             = 55.0,
                 default         = 0.0,
                 speed           = 0.3,
                 controlGroup    = 'basket',
                 propModel       = 'ladder_bucket',
                 attachTo        = '3',
-                defaultOffset   = vector3(0.0, 0.0, 0.0),
+                defaultOffset   = vector3(0.0, 7.9, -0.2),
                 defaultRotation = vector3(0.0, 0.0, 0.0),
             },
         },
@@ -179,7 +179,7 @@ Config.Vehicles = {
         cage = {
             enabled       = true,
             useBoneProp   = 4, -- Direkt an Korb-Prop #4
-            playerOffset  = vector3(0.0, 0.0, 0.3),
+            playerOffset  = vector3(0.0, 0.6, 1.0),
             enterDistance = 3.0,
             canControl    = true,
             maxOccupants  = 2,
@@ -222,23 +222,30 @@ Config.Vehicles = {
             enabled = true,
             objects = {
                 {
-                    model     = 'ladder_main_0',
+                    model     = 'ladder_base',
                     attachTo  = '1',
-                    offset    = vector3(0.0, 0.0, 1.0),
+                    offset    = vector3(0.0, 0.0, 0.0),
+                    rotation  = vector3(0.0, 0.0, 0.0),
+                    invisible = true, -- ← unsichtbar, Bone-Prop ist der sichtbare
+                },
+                {
+                    model     = 'ladder_main_0',
+                    attachTo  = '2',
+                    offset    = vector3(0.0, 0.0, 0.0),
                     rotation  = vector3(0.0, 0.0, 0.0),
                     invisible = true, -- ← unsichtbar, Bone-Prop ist der sichtbare
                 },
                 {
                     model     = 'ladder_main_1',
-                    attachTo  = '2',
-                    offset    = vector3(0.0, 0.0, 1.0),
+                    attachTo  = '3',
+                    offset    = vector3(0.0, 0.0, 0.0),
                     rotation  = vector3(0.0, 0.0, 0.0),
                     invisible = true, -- ← unsichtbar
                 },
                 {
                     model     = 'ladder_bucket',
-                    attachTo  = '3',
-                    offset    = vector3(0.0, 0.0, 1.0),
+                    attachTo  = '4',
+                    offset    = vector3(0.0, 0.0, 0.0),
                     rotation  = vector3(0.0, 0.0, 0.0),
                     invisible = true, -- ← unsichtbar
                 },
