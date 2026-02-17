@@ -153,27 +153,6 @@ Config.Vehicles = {
             },
         },
 
-        -- ======================
-        -- PROPS
-        -- ======================
-        props = {
-            {
-                id = 'warning_beacon',
-                model = 'prop_phonebox_01c',
-                attachTo = 'vehicle',
-                boneIndex = 'bodyshell',
-                defaultOffset = vector3(0.0, 2.0, 1.5),
-                defaultRotation = vector3(0.0, 0.0, 0.0),
-                offset = vector3(0.0, 2.0, 1.5),
-                rotation = vector3(0.0, 0.0, 0.0),
-                disableCollisions = true,
-                toggleOffInitially = false,
-                controls = {
-                    { control = 104, movementType = 'toggle' },
-                    { control = 105, movementType = 'spin',  axis = 3, movementAmount = 1.0, movementSpeed = 50, removeSmoke = false },
-                }
-            }
-        },
 
         -- ======================
         -- STABILIZERS (Prop-basiert)
@@ -243,25 +222,25 @@ Config.Vehicles = {
             enabled = true,
             objects = {
                 {
-                    model     = 'ladder_main_0', -- Gleiches Modell wie Korb!
+                    model     = 'ladder_main_0',
                     attachTo  = '1',
-                    offset    = vector3(0.0, 0.0, 0.0),
+                    offset    = vector3(0.0, 0.0, 1.0),
                     rotation  = vector3(0.0, 0.0, 0.0),
-                    invisible = true, -- Unsichtbar (visuell ist der Bone-Prop)
+                    invisible = true, -- ← unsichtbar, Bone-Prop ist der sichtbare
                 },
                 {
-                    model     = 'ladder_main_1', -- Gleiches Modell wie Korb!
+                    model     = 'ladder_main_1',
                     attachTo  = '2',
-                    offset    = vector3(0.0, 0.0, 0.0),
+                    offset    = vector3(0.0, 0.0, 1.0),
                     rotation  = vector3(0.0, 0.0, 0.0),
-                    invisible = true, -- Unsichtbar (visuell ist der Bone-Prop)
+                    invisible = true, -- ← unsichtbar
                 },
                 {
-                    model     = 'ladder_bucket', -- Gleiches Modell wie Korb!
+                    model     = 'ladder_bucket',
                     attachTo  = '3',
-                    offset    = vector3(0.0, 0.0, 0.0),
+                    offset    = vector3(0.0, 0.0, 1.0),
                     rotation  = vector3(0.0, 0.0, 0.0),
-                    invisible = true, -- Unsichtbar (visuell ist der Bone-Prop)
+                    invisible = true, -- ← unsichtbar
                 },
             }
         },

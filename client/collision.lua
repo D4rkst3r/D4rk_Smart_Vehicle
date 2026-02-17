@@ -1,6 +1,7 @@
 -- D4rk Smart Vehicle - Collision Objects (PROP-BASED)
--- VERSION 2.3 - POSITION-FOLLOW statt Attach
+-- VERSION 2.4 - POSITION-FOLLOW + NoCollision komplett
 -- Props folgen per SetEntityCoords → keine Physik-Übertragung auf Fahrzeug!
+-- Collision nur mit Spielern/Peds, nicht mit Fahrzeug/Bone-Props/untereinander
 local collisionProps = {} -- per vehicle netId
 
 -- ============================================
@@ -35,6 +36,18 @@ function SpawnCollisionObjects(vehicle, vehicleName)
                     SetEntityInvincible(prop, true)
                     FreezeEntityPosition(prop, true)
 
+                    -- Ignoriere Kollision mit dem eigenen Fahrzeug
+                    SetEntityNoCollisionEntity(prop, vehicle, false)
+
+                    -- Ignoriere Kollision mit ALLEN Bone-Props
+                    if spawnedBoneProps[netId] then
+                        for _, boneProp in pairs(spawnedBoneProps[netId]) do
+                            if boneProp and boneProp.entity and DoesEntityExist(boneProp.entity) then
+                                SetEntityNoCollisionEntity(prop, boneProp.entity, false)
+                            end
+                        end
+                    end
+
                     -- Sichtbarkeit
                     if obj.invisible then
                         SetEntityAlpha(prop, 0, false)
@@ -55,6 +68,17 @@ function SpawnCollisionObjects(vehicle, vehicleName)
                 end
 
                 SetModelAsNoLongerNeeded(modelHash)
+            end
+        end
+    end
+
+    -- Alle Collision-Props untereinander deaktivieren
+    -- (erst NACH dem Spawnen, wenn alle existieren)
+    for i, propA in pairs(collisionProps[netId]) do
+        for j, propB in pairs(collisionProps[netId]) do
+            if i ~= j and propA.entity and propB.entity
+                and DoesEntityExist(propA.entity) and DoesEntityExist(propB.entity) then
+                SetEntityNoCollisionEntity(propA.entity, propB.entity, false)
             end
         end
     end
