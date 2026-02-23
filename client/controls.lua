@@ -56,6 +56,10 @@ function StopControl()
     -- Stop animations
     if controlMode == 'standing' or controlMode == 'remote' then
         ClearPedTasks(PlayerPedId())
+        if Config.Animations then
+            if Config.Animations.standing_control then RemoveAnimDict(Config.Animations.standing_control.dict) end
+            if Config.Animations.remote then RemoveAnimDict(Config.Animations.remote.dict) end
+        end
     end
 
     ShowNotification(GetTranslation('control_stopped'), 'info')
@@ -118,14 +122,28 @@ function ControlThread()
             end
         end
 
-        -- Animationen nur spielen, wenn das Panel NICHT offen ist
-        if not menuOpen then
-            if controlMode == 'standing' then
-                -- Animation Code
-            elseif controlMode == 'remote' then
-                -- Animation Code
-                DisableControlAction(0, 30, true)
-                DisableControlAction(0, 31, true)
+        -- Animationen abspielen (aus Config.Animations)
+        local animConfig = nil
+        if controlMode == 'standing' then
+            animConfig = Config.Animations and Config.Animations.standing_control
+        elseif controlMode == 'remote' then
+            animConfig = Config.Animations and Config.Animations.remote
+            DisableControlAction(0, 30, true)
+            DisableControlAction(0, 31, true)
+        end
+
+        if animConfig and animConfig.dict and animConfig.anim then
+            if not IsEntityPlayingAnim(playerPed, animConfig.dict, animConfig.anim, 3) then
+                RequestAnimDict(animConfig.dict)
+                local timeout = 0
+                while not HasAnimDictLoaded(animConfig.dict) and timeout < 50 do
+                    Wait(10)
+                    timeout = timeout + 1
+                end
+                if HasAnimDictLoaded(animConfig.dict) then
+                    TaskPlayAnim(playerPed, animConfig.dict, animConfig.anim,
+                        2.0, -2.0, -1, animConfig.flag or 49, 0, false, false, false)
+                end
             end
         end
 
@@ -283,6 +301,9 @@ function DeactivateRemote()
 
     -- Stop animations
     ClearPedTasks(PlayerPedId())
+    if Config.Animations and Config.Animations.remote then
+        RemoveAnimDict(Config.Animations.remote.dict)
+    end
 
     currentVehicle = nil
     currentVehicleName = nil
