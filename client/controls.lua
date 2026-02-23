@@ -82,14 +82,27 @@ function ControlThread()
         end
         DisableControlAction(0, 21, true) -- Shift (für Shift-Combos)
 
+        -- Kamera + Kampf deaktivieren wenn ein NUI Panel mit Maus offen ist
+        if menuOpen or remoteActive then
+            DisableControlAction(0, 1, true)   -- Kamera X
+            DisableControlAction(0, 2, true)   -- Kamera Y
+            DisableControlAction(0, 24, true)  -- Angriff
+            DisableControlAction(0, 25, true)  -- Zielen
+            DisableControlAction(0, 37, true)  -- Waffe auswählen
+            DisableControlAction(0, 44, true)  -- Deckung
+            DisableControlAction(0, 47, true)  -- Waffe (G)
+            DisableControlAction(0, 58, true)  -- Waffe (Faust)
+            DisableControlAction(0, 75, true)  -- Fahrzeug aussteigen
+            DisableControlAction(0, 106, true) -- Mausrad
+            DisableControlAction(0, 140, true) -- Nahkampf
+            DisableControlAction(0, 141, true) -- Nahkampf 2
+            DisableControlAction(0, 142, true) -- Nahkampf 3
+            DisableControlAction(0, 257, true) -- Angriff 2
+            DisableControlAction(0, 263, true) -- Nahkampf Spezial
+            DisableControlAction(0, 264, true) -- Nahkampf Spezial 2
+        end
         if menuOpen then
-            DisableControlAction(0, 1, true)
-            DisableControlAction(0, 2, true)
-            DisableControlAction(0, 24, true)
-            DisableControlAction(0, 25, true)
-            DisableControlAction(0, 75, true)
-            DisableControlAction(0, 106, true)
-            DisableControlAction(0, 200, true)
+            DisableControlAction(0, 200, true) -- ESC/Pause nur bei Panel
         end
 
         -- Distance check
@@ -236,6 +249,11 @@ function ActivateRemote(vehicle, vehicleName)
 
     -- Start control thread für Tasteneingaben
     CreateThread(ControlThread)
+
+    -- NUI Focus für Maus-Interaktion mit Remote Panel
+    SetNuiFocus(true, true)
+    SetNuiFocusKeepInput(true)
+
     OpenNuiPanel('remote', vehicle, vehicleName)
 
     ShowNotification(GetTranslation('remote_activated'), 'success')
@@ -258,6 +276,10 @@ function DeactivateRemote()
     -- Schließe Compact HUD
     HideCompactHud()
     CloseNuiPanel()
+
+    -- NUI Focus freigeben
+    SetNuiFocus(false, false)
+    SetNuiFocusKeepInput(false)
 
     -- Stop animations
     ClearPedTasks(PlayerPedId())

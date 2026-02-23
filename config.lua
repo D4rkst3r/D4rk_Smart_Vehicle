@@ -74,7 +74,7 @@ Config.Vehicles = {
 
         standingControl = {
             requireBoneProp = 1,   -- Muss auf Bone-Prop #1 (ladder_base) stehen
-            maxDistance     = 1.0, -- Max Abstand zum Prop
+            maxDistance     = 3.0, -- Max Abstand zum Prop
         },
 
         -- ======================

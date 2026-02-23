@@ -96,6 +96,392 @@
     <!-- Notification System -->
     <div id="notifications"></div>
 
+    <!-- ============================================
+         D4RK NEW CONTROL PANELS
+         Ladder Panel | Remote Control | Dashboard MDT
+         ============================================ -->
+
+    <!-- LADDER PANEL — Am Fahrzeug stehend -->
+    <div id="ladderPanelOverlay" class="d4rk-panel-overlay ladder-mode">
+        <div class="lp-frame" id="ladderPanel">
+            <div class="lp-screw tl"></div>
+            <div class="lp-screw tr"></div>
+            <div class="lp-screw bl"></div>
+            <div class="lp-screw br"></div>
+
+            <div class="lp-status-bar">
+                <span class="lp-status-label">D4RK LADDER CTRL</span>
+                <div class="lp-status-lights">
+                    <div class="lp-led" id="lpLedWarn"></div>
+                    <div class="lp-led" id="lpLedPower"></div>
+                </div>
+            </div>
+
+            <div class="lp-top-controls">
+                <div class="lp-estop" data-system="emergency_stop" title="Not-Stopp">
+                    <div class="lp-estop-ring"></div>
+                    <svg viewBox="0 0 24 24">
+                        <path d="M6 6h12v12H6z" />
+                    </svg>
+                </div>
+                <div class="lp-power" id="lpPower" title="Power">
+                    <svg viewBox="0 0 24 24">
+                        <path
+                            d="M13 3h-2v10h2V3zm4.83 2.17l-1.42 1.42C17.99 7.86 19 9.81 19 12c0 3.87-3.13 7-7 7s-7-3.13-7-7c0-2.19 1.01-4.14 2.58-5.42L6.17 5.17C4.23 6.82 3 9.26 3 12c0 4.97 4.03 9 9 9s9-4.03 9-9c0-2.74-1.23-5.18-3.17-6.83z" />
+                    </svg>
+                </div>
+            </div>
+
+            <div class="lp-info">
+                <div class="lp-info-item">
+                    <div class="lp-info-value" id="lpValRot">0°</div>
+                    <div class="lp-info-label">ROTATION</div>
+                </div>
+                <div class="lp-info-item">
+                    <div class="lp-info-value" id="lpValElev">0°</div>
+                    <div class="lp-info-label">ELEVATION</div>
+                </div>
+                <div class="lp-info-item">
+                    <div class="lp-info-value" id="lpValExt">0.0m</div>
+                    <div class="lp-info-label">EXTEND</div>
+                </div>
+                <div class="lp-info-item">
+                    <div class="lp-info-value" id="lpValBsk">0°</div>
+                    <div class="lp-info-label">BASKET</div>
+                </div>
+            </div>
+
+            <div class="lp-joy-section">
+                <div class="lp-joy-plate">
+                    <div class="lp-dir-label top">HEBEN</div>
+                    <div class="lp-dir-label bottom">SENKEN</div>
+                    <div class="lp-dir-label lleft">LINKS</div>
+                    <div class="lp-dir-label lright">RECHTS</div>
+                    <div class="lp-dir up" data-action="elevate_up"><svg viewBox="0 0 24 24">
+                            <path d="M7 14l5-5 5 5z" />
+                        </svg></div>
+                    <div class="lp-dir down" data-action="elevate_down"><svg viewBox="0 0 24 24">
+                            <path d="M7 10l5 5 5-5z" />
+                        </svg></div>
+                    <div class="lp-dir left" data-action="rotate_left"><svg viewBox="0 0 24 24">
+                            <path d="M14 7l-5 5 5 5z" />
+                        </svg></div>
+                    <div class="lp-dir right" data-action="rotate_right"><svg viewBox="0 0 24 24">
+                            <path d="M10 17l5-5-5-5z" />
+                        </svg></div>
+                    <div class="lp-knob" id="lpKnob"></div>
+                </div>
+            </div>
+
+            <div class="lp-secondary">
+                <div class="lp-ctrl-group">
+                    <span class="lp-ctrl-label">AUSFAHREN</span>
+                    <div class="lp-ctrl-pair">
+                        <div class="lp-ctrl-btn" data-action="extend_out"><svg viewBox="0 0 24 24">
+                                <path d="M12 8l-6 6h12z" />
+                            </svg></div>
+                        <div class="lp-ctrl-btn" data-action="extend_in"><svg viewBox="0 0 24 24">
+                                <path d="M12 16l6-6H6z" />
+                            </svg></div>
+                    </div>
+                </div>
+                <div class="lp-ctrl-group">
+                    <span class="lp-ctrl-label">KORB</span>
+                    <div class="lp-ctrl-pair">
+                        <div class="lp-ctrl-btn" data-action="basket_left"><svg viewBox="0 0 24 24">
+                                <path d="M14 7l-5 5 5 5z" />
+                            </svg></div>
+                        <div class="lp-ctrl-btn" data-action="basket_right"><svg viewBox="0 0 24 24">
+                                <path d="M10 17l5-5-5-5z" />
+                            </svg></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lp-bottom">
+                <div class="lp-stab-btn" data-system="stabilizers_toggle" id="lpStabDeploy" title="Stützen">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M3 21h18v-2H3v2zm0-4h18v-2H3v2zm0-4h18v-2H3v2zm0-4h18V7H3v2zm0-6v2h18V3H3z" />
+                    </svg>
+                    <span class="lp-stab-btn-label">DEPLOY</span>
+                </div>
+                <div class="lp-stab-btn" data-system="stabilizers_toggle" id="lpStabRetract" title="Stützen">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M3 21h18v-2H3v2zm6-4h6v-2H9v2zm-3-4h12v-2H6v2zm-3-4h18V7H3v2zm6-6v2h6V3H9z" />
+                    </svg>
+                    <span class="lp-stab-btn-label">RETRACT</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- REMOTE CONTROL — Fernsteuerung in der Hand -->
+    <div id="remotePanelOverlay" class="d4rk-panel-overlay remote-mode">
+        <div class="rc-body" id="remotePanel">
+            <div class="rc-antenna"></div>
+            <div class="rc-signal" id="rcSignal"></div>
+
+            <div class="rc-brand">D4RK REMOTE</div>
+
+            <div class="rc-lcd-frame">
+                <div class="rc-lcd">
+                    <div class="rc-lcd-row">
+                        <div class="rc-lcd-item">
+                            <span class="rc-lcd-label">ROT</span>
+                            <span class="rc-lcd-value" id="rcValRot">0°</span>
+                        </div>
+                        <div class="rc-lcd-item">
+                            <span class="rc-lcd-label">ELV</span>
+                            <span class="rc-lcd-value" id="rcValElev">0°</span>
+                        </div>
+                    </div>
+                    <div class="rc-lcd-row">
+                        <div class="rc-lcd-item">
+                            <span class="rc-lcd-label">EXT</span>
+                            <span class="rc-lcd-value" id="rcValExt">0.0m</span>
+                        </div>
+                        <div class="rc-lcd-item">
+                            <span class="rc-lcd-label">BSK</span>
+                            <span class="rc-lcd-value" id="rcValBsk">0°</span>
+                        </div>
+                    </div>
+                    <div class="rc-lcd-status">
+                        <span class="rc-lcd-status-text" id="rcConnStatus">DISCONNECTED</span>
+                        <div style="display:flex;gap:3px;">
+                            <div class="mdt-stab-dot" id="rcSDot1"></div>
+                            <div class="mdt-stab-dot" id="rcSDot2"></div>
+                            <div class="mdt-stab-dot" id="rcSDot3"></div>
+                            <div class="mdt-stab-dot" id="rcSDot4"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rc-estop-area">
+                <div class="rc-estop" data-system="emergency_stop" title="NOT-STOPP">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M6 6h12v12H6z" />
+                    </svg>
+                </div>
+            </div>
+
+            <div class="rc-joy-area">
+                <div class="rc-joy-ring">
+                    <div class="rc-dir up" data-action="elevate_up"><svg viewBox="0 0 24 24">
+                            <path d="M7 14l5-5 5 5z" />
+                        </svg></div>
+                    <div class="rc-dir down" data-action="elevate_down"><svg viewBox="0 0 24 24">
+                            <path d="M7 10l5 5 5-5z" />
+                        </svg></div>
+                    <div class="rc-dir left" data-action="rotate_left"><svg viewBox="0 0 24 24">
+                            <path d="M14 7l-5 5 5 5z" />
+                        </svg></div>
+                    <div class="rc-dir right" data-action="rotate_right"><svg viewBox="0 0 24 24">
+                            <path d="M10 17l5-5-5-5z" />
+                        </svg></div>
+                    <div class="rc-knob" id="rcKnob"></div>
+                </div>
+            </div>
+
+            <div class="rc-bottom">
+                <div class="rc-ctrl-col">
+                    <span class="rc-ctrl-col-label">EXTEND</span>
+                    <div class="rc-ctrl-pair">
+                        <div class="rc-ctrl-sm" data-action="extend_out"><svg viewBox="0 0 24 24">
+                                <path d="M12 8l-6 6h12z" />
+                            </svg></div>
+                        <div class="rc-ctrl-sm" data-action="extend_in"><svg viewBox="0 0 24 24">
+                                <path d="M12 16l6-6H6z" />
+                            </svg></div>
+                    </div>
+                </div>
+                <div class="rc-ctrl-col">
+                    <span class="rc-ctrl-col-label">STABS</span>
+                    <div class="rc-stab-btn" data-system="stabilizers_toggle" id="rcStab">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M3 21h18v-2H3v2zm0-4h18v-2H3v2zm0-4h18v-2H3v2zm0-4h18V7H3v2zm0-6v2h18V3H3z" />
+                        </svg>
+                        <span id="rcStabLabel">OFF</span>
+                    </div>
+                </div>
+                <div class="rc-ctrl-col">
+                    <span class="rc-ctrl-col-label">BASKET</span>
+                    <div class="rc-ctrl-pair">
+                        <div class="rc-ctrl-sm" data-action="basket_left"><svg viewBox="0 0 24 24">
+                                <path d="M14 7l-5 5 5 5z" />
+                            </svg></div>
+                        <div class="rc-ctrl-sm" data-action="basket_right"><svg viewBox="0 0 24 24">
+                                <path d="M10 17l5-5-5-5z" />
+                            </svg></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rc-grip"></div>
+        </div>
+    </div>
+
+    <!-- DASHBOARD MDT — Im Fahrzeug -->
+    <div id="dashboardPanelOverlay" class="d4rk-panel-overlay dashboard-mode">
+        <div class="mdt-housing" id="dashboardPanel">
+            <div class="mdt-bezel">
+                <span class="mdt-brand-text">D4RK SYSTEMS</span>
+                <div class="mdt-leds">
+                    <span class="mdt-led-label">PWR</span>
+                    <div class="mdt-led" id="mdtLedPwr"></div>
+                    <span class="mdt-led-label">STAB</span>
+                    <div class="mdt-led" id="mdtLedStab"></div>
+                    <span class="mdt-led-label">WARN</span>
+                    <div class="mdt-led" id="mdtLedWarn"></div>
+                </div>
+            </div>
+
+            <div class="mdt-screen">
+                <div class="mdt-topbar">
+                    <span class="mdt-vehicle-name" id="mdtVehicleName">DREHLEITER DLK 23/12</span>
+                    <div style="display:flex;gap:6px;">
+                        <div class="mdt-warn-icon" id="mdtWarnNoStab">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" />
+                            </svg>
+                            <span>NO STAB</span>
+                        </div>
+                        <div class="mdt-warn-icon" id="mdtWarnLimit">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" />
+                            </svg>
+                            <span>LIMIT</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mdt-main">
+                    <div class="mdt-gauges">
+                        <div class="mdt-gauge">
+                            <span class="mdt-gauge-label">ROT</span>
+                            <span class="mdt-gauge-value" id="mdtValRot">0°</span>
+                        </div>
+                        <div class="mdt-gauge">
+                            <div style="width:100%">
+                                <div style="display:flex;justify-content:space-between;align-items:center;">
+                                    <span class="mdt-gauge-label">ELEVATION</span>
+                                    <span class="mdt-gauge-value" id="mdtValElev">0°</span>
+                                </div>
+                                <div class="mdt-bar-bg">
+                                    <div class="mdt-bar-fill" id="mdtBarElev"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mdt-gauge">
+                            <div style="width:100%">
+                                <div style="display:flex;justify-content:space-between;align-items:center;">
+                                    <span class="mdt-gauge-label">EXTEND</span>
+                                    <span class="mdt-gauge-value" id="mdtValExt">0.0m</span>
+                                </div>
+                                <div class="mdt-bar-bg">
+                                    <div class="mdt-bar-fill" id="mdtBarExt"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mdt-gauge">
+                            <span class="mdt-gauge-label">BASKET</span>
+                            <span class="mdt-gauge-value" id="mdtValBsk">0°</span>
+                        </div>
+                        <div class="mdt-stab-display">
+                            <div class="mdt-stab-label">STABILIZERS</div>
+                            <div class="mdt-stab-grid">
+                                <div class="mdt-stab-dot" id="mdtSFL"></div>
+                                <div></div>
+                                <div class="mdt-stab-dot" id="mdtSFR"></div>
+                                <div></div>
+                                <div class="mdt-stab-vehicle"></div>
+                                <div></div>
+                                <div class="mdt-stab-dot" id="mdtSRL"></div>
+                                <div></div>
+                                <div class="mdt-stab-dot" id="mdtSRR"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mdt-controls">
+                        <div>
+                            <span class="mdt-ctrl-header">TURM / LEITER</span>
+                            <div class="mdt-joy-compact">
+                                <div class="mdt-joy-ring">
+                                    <div class="mdt-joy-dir up" data-action="elevate_up"><svg viewBox="0 0 24 24">
+                                            <path d="M7 14l5-5 5 5z" />
+                                        </svg></div>
+                                    <div class="mdt-joy-dir down" data-action="elevate_down"><svg viewBox="0 0 24 24">
+                                            <path d="M7 10l5 5 5-5z" />
+                                        </svg></div>
+                                    <div class="mdt-joy-dir left" data-action="rotate_left"><svg viewBox="0 0 24 24">
+                                            <path d="M14 7l-5 5 5 5z" />
+                                        </svg></div>
+                                    <div class="mdt-joy-dir right" data-action="rotate_right"><svg viewBox="0 0 24 24">
+                                            <path d="M10 17l5-5-5-5z" />
+                                        </svg></div>
+                                    <div class="mdt-joy-center" id="mdtKnob"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="mdt-ctrl-header">AUSFAHREN / KORB</span>
+                            <div class="mdt-btn-row">
+                                <div class="mdt-touch-btn" data-action="extend_out"><svg viewBox="0 0 24 24">
+                                        <path d="M12 8l-6 6h12z" />
+                                    </svg><span>AUS</span></div>
+                                <div class="mdt-touch-btn" data-action="extend_in"><svg viewBox="0 0 24 24">
+                                        <path d="M12 16l6-6H6z" />
+                                    </svg><span>EIN</span></div>
+                                <div class="mdt-touch-btn" data-action="basket_left"><svg viewBox="0 0 24 24">
+                                        <path d="M14 7l-5 5 5 5z" />
+                                    </svg><span>L</span></div>
+                                <div class="mdt-touch-btn" data-action="basket_right"><svg viewBox="0 0 24 24">
+                                        <path d="M10 17l5-5-5-5z" />
+                                    </svg><span>R</span></div>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="mdt-ctrl-header">SYSTEM</span>
+                            <div class="mdt-btn-row">
+                                <div class="mdt-touch-btn stab" data-system="stabilizers_toggle" id="mdtStab">
+                                    <svg viewBox="0 0 24 24">
+                                        <path
+                                            d="M3 21h18v-2H3v2zm0-4h18v-2H3v2zm0-4h18v-2H3v2zm0-4h18V7H3v2zm0-6v2h18V3H3z" />
+                                    </svg>
+                                    <span id="mdtStabText">DEPLOY</span>
+                                </div>
+                                <div class="mdt-touch-btn estop" data-system="emergency_stop">
+                                    <svg viewBox="0 0 24 24">
+                                        <path d="M6 6h12v12H6z" />
+                                    </svg>
+                                    <span>STOP</span>
+                                </div>
+                                <div class="mdt-touch-btn" data-system="reset_all">
+                                    <svg viewBox="0 0 24 24">
+                                        <path
+                                            d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                                    </svg>
+                                    <span>RESET</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mdt-bottom-bar">
+                    <span class="mdt-bottom-info" id="mdtInfo">SYSTEM BEREIT</span>
+                    <div class="mdt-bottom-actions">
+                        <div class="mdt-action-btn" data-system="preset_1">P1</div>
+                        <div class="mdt-action-btn" data-system="preset_2">P2</div>
+                        <div class="mdt-action-btn" data-system="preset_3">P3</div>
+                        <div class="mdt-action-btn" data-system="close_panel">ESC</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="../js/jquery.min.js"></script>
     <script src="../js/script.js"></script>
     <script src="../js/panels.js"></script>
