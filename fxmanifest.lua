@@ -21,6 +21,7 @@ client_scripts {
     'client/spotlight.lua',
     'client/spinning.lua',
     'client/stabilizers.lua',
+    'client/nui_controls.lua'
 }
 
 server_scripts {
@@ -34,7 +35,9 @@ ui_page 'nui/html/index.html'
 files {
     'nui/html/index.html',
     'nui/css/style.css',
+    'nui/css/panels.css',
     'nui/js/script.js',
+    'nui/js/panels.js',
     'nui/js/jquery.min.js',
     'nui/img/*.png'
 }

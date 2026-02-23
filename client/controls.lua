@@ -236,6 +236,7 @@ function ActivateRemote(vehicle, vehicleName)
 
     -- Start control thread für Tasteneingaben
     CreateThread(ControlThread)
+    OpenNuiPanel('remote', vehicle, vehicleName)
 
     ShowNotification(GetTranslation('remote_activated'), 'success')
 end
@@ -256,6 +257,7 @@ function DeactivateRemote()
 
     -- Schließe Compact HUD
     HideCompactHud()
+    CloseNuiPanel()
 
     -- Stop animations
     ClearPedTasks(PlayerPedId())

@@ -599,6 +599,12 @@ function OpenControlPanel(vehicle, vehicleName)
             value = state.controlValues[i]
         })
     end
+    -- NEU: Panel-Typ basierend auf controlMode
+    if controlMode == 'inside' then
+        OpenNuiPanel('dashboard', vehicle, vehicleName)
+    elseif controlMode == 'standing' then
+        OpenNuiPanel('ladder', vehicle, vehicleName)
+    end
 
     SendNUIMessage({ action = 'updateStabilizers', deployed = state.stabilizersDeployed })
     SendNUIMessage({ action = 'updateMode', mode = controlMode })
@@ -622,9 +628,11 @@ function CloseControlPanel()
 
     SetNuiFocus(false, false)
     SetNuiFocusKeepInput(false)
+    CloseNuiPanel()
 
     SendNUIMessage({
         action = 'closePanel'
+
     })
 end
 

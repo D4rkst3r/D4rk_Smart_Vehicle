@@ -1,0 +1,742 @@
+/* ============================================
+   D4RK SMART VEHICLE - NEW CONTROL PANELS
+   Ladder Panel | Remote Control | Dashboard MDT
+   ============================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&family=Share+Tech+Mono&display=swap');
+
+/* ============================================
+   SHARED PANEL STYLES
+   ============================================ */
+.d4rk-panel-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    pointer-events: none;
+}
+.d4rk-panel-overlay.active {
+    display: flex;
+    pointer-events: auto;
+}
+
+/* ============================================
+   LADDER PANEL — Bottom center
+   ============================================ */
+.d4rk-panel-overlay.ladder-mode {
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 40px;
+}
+
+.d4rk-panel-overlay.remote-mode {
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 40px;
+}
+
+.d4rk-panel-overlay.dashboard-mode {
+    align-items: flex-end;
+    justify-content: flex-end;
+    padding: 0 30px 30px 0;
+}
+
+/* ============================================
+   LADDER PANEL FRAME
+   ============================================ */
+.lp-frame {
+    position: relative;
+    width: 320px;
+    padding: 16px;
+    background: 
+        linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 50%),
+        linear-gradient(180deg, #4a4a4a 0%, #3a3a3a 30%, #2e2e2e 70%, #252525 100%);
+    border-radius: 12px;
+    border: 2px solid #555;
+    box-shadow: 0 0 0 1px #1a1a1a, 0 0 0 3px #444, inset 0 1px 0 rgba(255,255,255,0.1), 0 15px 40px rgba(0,0,0,0.6);
+    font-family: 'Oxanium', sans-serif;
+}
+.lp-frame::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 10px;
+    background: repeating-linear-gradient(90deg, transparent, transparent 1px, rgba(255,255,255,0.015) 1px, rgba(255,255,255,0.015) 2px);
+    pointer-events: none;
+}
+
+/* Screws */
+.lp-screw {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    background: radial-gradient(circle at 40% 40%, #666, #333 60%, #222);
+    border-radius: 50%;
+    border: 1px solid #555;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.5), 0 1px 1px rgba(255,255,255,0.1);
+}
+.lp-screw::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) rotate(35deg);
+    width: 8px; height: 1.5px;
+    background: #222;
+}
+.lp-screw.tl { top: 8px; left: 8px; }
+.lp-screw.tr { top: 8px; right: 8px; }
+.lp-screw.bl { bottom: 8px; left: 8px; }
+.lp-screw.br { bottom: 8px; right: 8px; }
+
+/* Status Bar */
+.lp-status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    padding: 0 8px;
+}
+.lp-status-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: #888;
+    letter-spacing: 2px;
+}
+.lp-status-lights {
+    display: flex;
+    gap: 8px;
+}
+.lp-led {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.4);
+    background: radial-gradient(circle at 40% 35%, #2a2a2a, #1a1a1a);
+}
+.lp-led.on-green {
+    background: radial-gradient(circle at 40% 35%, #4eff4e, #0a0);
+    box-shadow: 0 0 8px rgba(0,255,0,0.5);
+}
+.lp-led.on-yellow {
+    background: radial-gradient(circle at 40% 35%, #ffcc00, #cc8800);
+    box-shadow: 0 0 8px rgba(255,200,0,0.5);
+    animation: lp-blink 1s infinite;
+}
+@keyframes lp-blink { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+/* Top Controls */
+.lp-top-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    margin-bottom: 14px;
+}
+
+/* E-Stop */
+.lp-estop {
+    position: relative;
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%, #ff3333, #cc0000 50%, #880000);
+    border: 3px solid #660000;
+    cursor: pointer;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.4), inset 0 2px 4px rgba(255,255,255,0.2), 0 0 0 2px #333;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.1s;
+}
+.lp-estop:active { transform: scale(0.95); }
+.lp-estop svg { width: 22px; height: 22px; fill: #fff; }
+.lp-estop-ring {
+    position: absolute; inset: -6px;
+    border-radius: 50%;
+    border: 2px solid #555;
+    background: linear-gradient(180deg, #444, #2a2a2a);
+    z-index: -1;
+}
+
+/* Power Button */
+.lp-power {
+    position: relative;
+    width: 44px; height: 44px;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #3a3a3a, #222);
+    border: 2px solid #555;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+}
+.lp-power.active { background: linear-gradient(180deg, #1a4a1a, #0a2a0a); border-color: #0a0; }
+.lp-power svg { width: 20px; height: 20px; fill: #666; transition: fill 0.15s; }
+.lp-power.active svg { fill: #0f0; filter: drop-shadow(0 0 4px rgba(0,255,0,0.6)); }
+
+/* Info Display */
+.lp-info {
+    margin: 10px 0 4px;
+    padding: 8px 12px;
+    background: #0a0f0a;
+    border-radius: 6px;
+    border: 1px solid #333;
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.6);
+    display: flex;
+    justify-content: space-around;
+}
+.lp-info-item { text-align: center; }
+.lp-info-value {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 14px;
+    color: #0f0;
+    text-shadow: 0 0 6px rgba(0,255,0,0.4);
+    min-width: 42px;
+}
+.lp-info-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 7px;
+    color: #0a5;
+    letter-spacing: 1px;
+    margin-top: 2px;
+}
+
+/* Joystick */
+.lp-joy-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 0;
+}
+.lp-joy-plate {
+    position: relative;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, #333 0%, #252525 60%, #1a1a1a 100%);
+    border-radius: 50%;
+    border: 2px solid #444;
+    box-shadow: inset 0 2px 8px rgba(0,0,0,0.5);
+    display: flex; align-items: center; justify-content: center;
+}
+
+.lp-dir {
+    position: absolute;
+    width: 48px; height: 48px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    border-radius: 8px;
+    background: linear-gradient(180deg, rgba(60,60,60,0.8), rgba(30,30,30,0.8));
+    border: 1px solid rgba(80,80,80,0.5);
+    transition: all 0.1s;
+    z-index: 2;
+}
+.lp-dir:hover { background: linear-gradient(180deg, rgba(80,80,80,0.9), rgba(40,40,40,0.9)); }
+.lp-dir:active, .lp-dir.pressed {
+    background: linear-gradient(180deg, rgba(0,120,200,0.6), rgba(0,80,140,0.6));
+    border-color: rgba(0,150,255,0.5);
+    box-shadow: 0 0 10px rgba(0,150,255,0.3);
+}
+.lp-dir svg { width: 20px; height: 20px; fill: #999; transition: fill 0.1s; }
+.lp-dir:active svg, .lp-dir.pressed svg { fill: #fff; }
+.lp-dir.up { top: 8px; left: 50%; transform: translateX(-50%); }
+.lp-dir.down { bottom: 8px; left: 50%; transform: translateX(-50%); }
+.lp-dir.left { left: 8px; top: 50%; transform: translateY(-50%); }
+.lp-dir.right { right: 8px; top: 50%; transform: translateY(-50%); }
+
+.lp-knob {
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%, #555, #333 40%, #1a1a1a 80%);
+    border: 2px solid #444;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5), inset 0 2px 4px rgba(255,255,255,0.1);
+    z-index: 3;
+    transition: transform 0.15s;
+}
+.lp-knob.tilt-up { transform: translateY(-3px); }
+.lp-knob.tilt-down { transform: translateY(3px); }
+.lp-knob.tilt-left { transform: translateX(-3px); }
+.lp-knob.tilt-right { transform: translateX(3px); }
+
+.lp-dir-label {
+    position: absolute;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 8px; color: #555; letter-spacing: 1px;
+}
+.lp-dir-label.top { top: -18px; left: 50%; transform: translateX(-50%); }
+.lp-dir-label.bottom { bottom: -18px; left: 50%; transform: translateX(-50%); }
+.lp-dir-label.lleft { left: -12px; top: 50%; transform: translateY(-50%) rotate(-90deg); }
+.lp-dir-label.lright { right: -12px; top: 50%; transform: translateY(-50%) rotate(90deg); }
+
+/* Secondary Controls */
+.lp-secondary {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin: 12px 0;
+}
+.lp-ctrl-group { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.lp-ctrl-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 8px; color: #666; letter-spacing: 1px;
+}
+.lp-ctrl-pair { display: flex; gap: 4px; }
+.lp-ctrl-btn {
+    width: 38px; height: 32px;
+    border-radius: 6px;
+    background: linear-gradient(180deg, #3a3a3a, #222);
+    border: 1.5px solid #555;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.1s;
+}
+.lp-ctrl-btn:active, .lp-ctrl-btn.pressed {
+    background: linear-gradient(180deg, rgba(0,120,200,0.5), rgba(0,60,120,0.5));
+    border-color: rgba(0,150,255,0.4);
+}
+.lp-ctrl-btn svg { width: 16px; height: 16px; fill: #999; }
+.lp-ctrl-btn:active svg, .lp-ctrl-btn.pressed svg { fill: #fff; }
+
+/* Bottom Stabilizers */
+.lp-bottom {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 10px;
+    padding-top: 12px;
+    border-top: 1px solid #3a3a3a;
+}
+.lp-stab-btn {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #3a3a3a, #222);
+    border: 1.5px solid #555;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.lp-stab-btn.deployed {
+    background: linear-gradient(180deg, #1a3a1a, #0a2a0a);
+    border-color: #0a0;
+}
+.lp-stab-btn svg { width: 28px; height: 28px; fill: #888; transition: fill 0.15s; }
+.lp-stab-btn.deployed svg { fill: #0f0; filter: drop-shadow(0 0 3px rgba(0,255,0,0.5)); }
+.lp-stab-btn-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 8px; color: #666; letter-spacing: 1px;
+}
+.lp-stab-btn.deployed .lp-stab-btn-label { color: #0a0; }
+
+/* OFF state */
+.lp-frame.off .lp-dir, .lp-frame.off .lp-ctrl-btn, .lp-frame.off .lp-stab-btn {
+    pointer-events: none; opacity: 0.4;
+}
+.lp-frame.off .lp-info { opacity: 0.2; }
+
+
+/* ============================================
+   REMOTE CONTROL
+   ============================================ */
+.rc-body {
+    position: relative;
+    width: 240px;
+    padding: 14px 14px 18px;
+    background: linear-gradient(180deg, #2a2a2a 0%, #222 40%, #1e1e1e 100%);
+    border-radius: 16px 16px 24px 24px;
+    border: 1.5px solid #444;
+    box-shadow: 0 0 0 1px #111, 0 12px 35px rgba(0,0,0,0.6);
+    font-family: 'Oxanium', sans-serif;
+}
+.rc-body::before, .rc-body::after {
+    content: '';
+    position: absolute;
+    top: 30%; bottom: 15%; width: 6px;
+    background: repeating-linear-gradient(180deg, #1a1a1a 0px, #1a1a1a 3px, #252525 3px, #252525 6px);
+    border-radius: 2px;
+}
+.rc-body::before { left: 2px; }
+.rc-body::after { right: 2px; }
+
+.rc-antenna {
+    position: absolute; top: -8px; right: 28px;
+    width: 10px; height: 16px;
+    background: linear-gradient(180deg, #555, #333);
+    border-radius: 4px 4px 2px 2px;
+    border: 1px solid #444;
+}
+.rc-signal {
+    position: absolute; top: -2px; right: 44px;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #1a1a1a;
+    border: 1px solid #333;
+}
+.rc-signal.active {
+    background: radial-gradient(circle at 40% 35%, #4eff4e, #0a0);
+    box-shadow: 0 0 6px rgba(0,255,0,0.6);
+    animation: rc-pulse 2s infinite;
+}
+@keyframes rc-pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+
+.rc-brand {
+    text-align: center; margin-bottom: 8px;
+    font-family: 'Oxanium', sans-serif;
+    font-weight: 700; font-size: 9px;
+    color: #555; letter-spacing: 4px;
+}
+
+/* LCD */
+.rc-lcd-frame {
+    background: #111; border-radius: 6px;
+    border: 1.5px solid #333;
+    padding: 2px; margin-bottom: 10px;
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.8);
+}
+.rc-lcd {
+    background: #0a120a;
+    border-radius: 4px;
+    padding: 8px 10px;
+    position: relative;
+}
+.rc-lcd::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.15) 2px, rgba(0,0,0,0.15) 4px);
+    pointer-events: none;
+}
+.rc-lcd-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
+.rc-lcd-item { display: flex; align-items: baseline; gap: 4px; }
+.rc-lcd-label { font-family: 'Share Tech Mono', monospace; font-size: 8px; color: #065; }
+.rc-lcd-value {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px; color: #0f0;
+    text-shadow: 0 0 5px rgba(0,255,0,0.4);
+    min-width: 42px; text-align: right;
+}
+.rc-lcd-status {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 4px; border-top: 1px solid #0a2a0a; margin-top: 4px;
+}
+.rc-lcd-status-text { font-family: 'Share Tech Mono', monospace; font-size: 8px; color: #065; letter-spacing: 1px; }
+.rc-lcd-status-text.connected { color: #0a0; }
+
+/* Remote Joystick */
+.rc-joy-area { display: flex; justify-content: center; margin: 6px 0 10px; }
+.rc-joy-ring {
+    position: relative;
+    width: 130px; height: 130px;
+    background: radial-gradient(circle, #2a2a2a 0%, #1e1e1e 60%, #161616 100%);
+    border-radius: 50%;
+    border: 1.5px solid #3a3a3a;
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.5);
+    display: flex; align-items: center; justify-content: center;
+}
+.rc-dir {
+    position: absolute;
+    width: 34px; height: 34px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; border-radius: 6px;
+    background: linear-gradient(180deg, rgba(50,50,50,0.9), rgba(25,25,25,0.9));
+    border: 1px solid rgba(70,70,70,0.6);
+    transition: all 0.1s;
+}
+.rc-dir:active, .rc-dir.pressed {
+    background: linear-gradient(180deg, rgba(200,80,0,0.7), rgba(140,50,0,0.7));
+    border-color: rgba(255,120,0,0.5);
+    box-shadow: 0 0 8px rgba(255,120,0,0.3);
+}
+.rc-dir svg { width: 16px; height: 16px; fill: #888; }
+.rc-dir:active svg, .rc-dir.pressed svg { fill: #fff; }
+.rc-dir.up { top: 4px; left: 50%; transform: translateX(-50%); }
+.rc-dir.down { bottom: 4px; left: 50%; transform: translateX(-50%); }
+.rc-dir.left { left: 4px; top: 50%; transform: translateY(-50%); }
+.rc-dir.right { right: 4px; top: 50%; transform: translateY(-50%); }
+
+.rc-knob {
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 38% 32%, #4a4a4a, #2a2a2a 50%, #1a1a1a 80%);
+    border: 1.5px solid #444;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.5);
+    z-index: 2;
+    transition: transform 0.12s;
+}
+.rc-knob.tilt-up { transform: translateY(-2px); }
+.rc-knob.tilt-down { transform: translateY(2px); }
+.rc-knob.tilt-left { transform: translateX(-2px); }
+.rc-knob.tilt-right { transform: translateX(2px); }
+
+/* Remote bottom */
+.rc-bottom {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 8px; padding: 0 4px;
+}
+.rc-ctrl-col { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.rc-ctrl-col-label { font-family: 'Share Tech Mono', monospace; font-size: 7px; color: #555; letter-spacing: 1px; }
+.rc-ctrl-pair { display: flex; gap: 3px; }
+.rc-ctrl-sm {
+    width: 30px; height: 26px;
+    border-radius: 5px;
+    background: linear-gradient(180deg, #333, #1e1e1e);
+    border: 1px solid #444;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.1s;
+}
+.rc-ctrl-sm:active, .rc-ctrl-sm.pressed {
+    background: linear-gradient(180deg, rgba(200,80,0,0.6), rgba(120,40,0,0.6));
+    border-color: rgba(255,120,0,0.4);
+}
+.rc-ctrl-sm svg { width: 12px; height: 12px; fill: #888; }
+.rc-ctrl-sm:active svg, .rc-ctrl-sm.pressed svg { fill: #fff; }
+
+.rc-stab-btn {
+    width: 62px; height: 28px;
+    border-radius: 6px;
+    background: linear-gradient(180deg, #333, #1e1e1e);
+    border: 1px solid #444;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 4px;
+    transition: all 0.15s;
+}
+.rc-stab-btn.deployed { background: linear-gradient(180deg, #1a3a1a, #0a2a0a); border-color: #0a0; }
+.rc-stab-btn svg { width: 14px; height: 14px; fill: #777; transition: fill 0.15s; }
+.rc-stab-btn.deployed svg { fill: #0f0; }
+.rc-stab-btn span { font-family: 'Share Tech Mono', monospace; font-size: 7px; color: #666; }
+.rc-stab-btn.deployed span { color: #0a0; }
+
+.rc-grip {
+    margin-top: 12px; height: 18px;
+    background: repeating-linear-gradient(90deg, #1a1a1a 0px, #1a1a1a 4px, #222 4px, #222 8px);
+    border-radius: 0 0 12px 12px;
+    margin-left: -4px; margin-right: -4px;
+    border-top: 1px solid #333;
+}
+
+/* Remote E-Stop */
+.rc-estop-area { display: flex; justify-content: flex-end; margin-bottom: 8px; padding-right: 4px; }
+.rc-estop {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%, #ff3333, #cc0000 50%, #880000);
+    border: 2px solid #660000;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.4), inset 0 1px 3px rgba(255,255,255,0.2), 0 0 0 2px #333;
+    display: flex; align-items: center; justify-content: center;
+}
+.rc-estop:active { transform: scale(0.93); }
+.rc-estop svg { width: 14px; height: 14px; fill: #fff; }
+
+.rc-body.off .rc-dir, .rc-body.off .rc-ctrl-sm, .rc-body.off .rc-stab-btn { pointer-events: none; opacity: 0.35; }
+.rc-body.off .rc-lcd { opacity: 0.15; }
+
+
+/* ============================================
+   DASHBOARD MDT
+   ============================================ */
+.mdt-housing {
+    position: relative;
+    width: 380px;
+    background: linear-gradient(180deg, #1a1a1a, #111);
+    border-radius: 8px;
+    border: 2px solid #333;
+    box-shadow: 0 0 0 1px #0a0a0a, 0 0 0 4px #2a2a2a, 0 10px 30px rgba(0,0,0,0.7);
+    overflow: hidden;
+    font-family: 'Oxanium', sans-serif;
+}
+
+.mdt-bezel {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 12px;
+    background: linear-gradient(180deg, #222, #1a1a1a);
+    border-bottom: 1px solid #333;
+}
+.mdt-brand-text {
+    font-family: 'Oxanium', sans-serif;
+    font-weight: 700; font-size: 9px;
+    color: #444; letter-spacing: 3px;
+}
+.mdt-leds { display: flex; align-items: center; gap: 8px; }
+.mdt-led-label { font-family: 'Share Tech Mono', monospace; font-size: 8px; color: #555; letter-spacing: 1px; }
+.mdt-led {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #1a1a1a; border: 1px solid #333;
+}
+.mdt-led.on { background: radial-gradient(circle at 40% 35%, #4eff4e, #0a0); box-shadow: 0 0 6px rgba(0,255,0,0.5); }
+.mdt-led.warn { background: radial-gradient(circle at 40% 35%, #ffcc00, #cc8800); box-shadow: 0 0 6px rgba(255,200,0,0.5); animation: lp-blink 1s infinite; }
+
+.mdt-screen {
+    background: #070e07;
+    margin: 4px; border-radius: 4px;
+    border: 1px solid #1a1a1a;
+    box-shadow: inset 0 2px 8px rgba(0,0,0,0.8);
+    padding: 10px;
+    position: relative;
+}
+.mdt-screen::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.08) 3px, rgba(0,0,0,0.08) 6px);
+    pointer-events: none; border-radius: 4px;
+}
+
+.mdt-topbar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-bottom: 6px; border-bottom: 1px solid #0a2a0a; margin-bottom: 8px;
+}
+.mdt-vehicle-name { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: #0a0; letter-spacing: 1px; }
+
+.mdt-main { display: flex; gap: 10px; }
+
+/* Gauges */
+.mdt-gauges { flex: 0 0 140px; display: flex; flex-direction: column; gap: 6px; }
+.mdt-gauge {
+    background: rgba(0,20,0,0.4);
+    border: 1px solid #0a2a0a;
+    border-radius: 4px;
+    padding: 6px 8px;
+    display: flex; justify-content: space-between; align-items: center;
+}
+.mdt-gauge-label { font-family: 'Share Tech Mono', monospace; font-size: 9px; color: #065; }
+.mdt-gauge-value {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 16px; color: #0f0;
+    text-shadow: 0 0 6px rgba(0,255,0,0.3);
+    min-width: 52px; text-align: right;
+}
+.mdt-bar-bg { width: 100%; height: 3px; background: #0a1a0a; border-radius: 2px; overflow: hidden; margin-top: 3px; }
+.mdt-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #0a0, #0f0);
+    border-radius: 2px; width: 0%;
+    transition: width 0.2s;
+    box-shadow: 0 0 4px rgba(0,255,0,0.3);
+}
+.mdt-bar-fill.warn { background: linear-gradient(90deg, #cc8800, #ffcc00); }
+.mdt-bar-fill.danger { background: linear-gradient(90deg, #cc0000, #ff3333); }
+
+/* Stab display */
+.mdt-stab-display {
+    background: rgba(0,20,0,0.4);
+    border: 1px solid #0a2a0a;
+    border-radius: 4px;
+    padding: 6px 8px;
+}
+.mdt-stab-label { font-family: 'Share Tech Mono', monospace; font-size: 8px; color: #065; letter-spacing: 1px; margin-bottom: 4px; }
+.mdt-stab-grid {
+    display: grid;
+    grid-template-columns: 1fr 40px 1fr;
+    grid-template-rows: 1fr 20px 1fr;
+    gap: 2px; align-items: center; justify-items: center;
+}
+.mdt-stab-dot {
+    width: 14px; height: 14px;
+    border-radius: 3px;
+    background: #0a1a0a;
+    border: 1px solid #0a2a0a;
+    transition: all 0.3s;
+}
+.mdt-stab-dot.active { background: #0f0; border-color: #0a0; box-shadow: 0 0 6px rgba(0,255,0,0.5); }
+.mdt-stab-vehicle { grid-column: 2; grid-row: 2; width: 28px; height: 16px; border: 1px solid #0a3a0a; border-radius: 3px; background: rgba(0,40,0,0.3); }
+
+/* MDT Controls */
+.mdt-controls { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.mdt-ctrl-header { font-family: 'Share Tech Mono', monospace; font-size: 8px; color: #065; letter-spacing: 1px; }
+
+.mdt-joy-compact { display: flex; align-items: center; justify-content: center; height: 100px; }
+.mdt-joy-ring {
+    position: relative;
+    width: 96px; height: 96px;
+    background: radial-gradient(circle, #0a1a0a, #071007 60%, #050d05 100%);
+    border-radius: 50%;
+    border: 1px solid #0a2a0a;
+    display: flex; align-items: center; justify-content: center;
+}
+.mdt-joy-dir {
+    position: absolute;
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; border-radius: 4px;
+    border: 1px solid #0a2a0a;
+    background: rgba(0,30,0,0.4);
+    transition: all 0.1s;
+}
+.mdt-joy-dir:active, .mdt-joy-dir.pressed {
+    background: rgba(0,200,0,0.2);
+    border-color: #0f0;
+    box-shadow: 0 0 8px rgba(0,255,0,0.2);
+}
+.mdt-joy-dir svg { width: 14px; height: 14px; fill: #0a0; }
+.mdt-joy-dir:active svg, .mdt-joy-dir.pressed svg { fill: #0f0; }
+.mdt-joy-dir.up { top: 2px; left: 50%; transform: translateX(-50%); }
+.mdt-joy-dir.down { bottom: 2px; left: 50%; transform: translateX(-50%); }
+.mdt-joy-dir.left { left: 2px; top: 50%; transform: translateY(-50%); }
+.mdt-joy-dir.right { right: 2px; top: 50%; transform: translateY(-50%); }
+.mdt-joy-center {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 38% 32%, #0a3a0a, #051505);
+    border: 1px solid #0a3a0a;
+    z-index: 2;
+    transition: transform 0.12s;
+}
+.mdt-joy-center.tilt-up { transform: translateY(-2px); }
+.mdt-joy-center.tilt-down { transform: translateY(2px); }
+.mdt-joy-center.tilt-left { transform: translateX(-2px); }
+.mdt-joy-center.tilt-right { transform: translateX(2px); }
+
+/* Touch buttons */
+.mdt-btn-row { display: flex; gap: 6px; }
+.mdt-touch-btn {
+    flex: 1; height: 34px;
+    border-radius: 4px;
+    background: rgba(0,30,0,0.4);
+    border: 1px solid #0a2a0a;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    transition: all 0.1s;
+}
+.mdt-touch-btn:active, .mdt-touch-btn.pressed {
+    background: rgba(0,200,0,0.2);
+    border-color: #0f0;
+    box-shadow: 0 0 8px rgba(0,255,0,0.2);
+}
+.mdt-touch-btn svg { width: 14px; height: 14px; fill: #0a0; }
+.mdt-touch-btn:active svg, .mdt-touch-btn.pressed svg { fill: #0f0; }
+.mdt-touch-btn span { font-family: 'Share Tech Mono', monospace; font-size: 8px; color: #0a0; letter-spacing: 0.5px; }
+.mdt-touch-btn:active span, .mdt-touch-btn.pressed span { color: #0f0; }
+
+.mdt-touch-btn.estop { background: rgba(40,0,0,0.4); border-color: #2a0a0a; }
+.mdt-touch-btn.estop:active { background: rgba(200,0,0,0.2); border-color: #f44; }
+.mdt-touch-btn.estop svg { fill: #a00; }
+.mdt-touch-btn.estop span { color: #a00; }
+
+.mdt-touch-btn.stab.deployed { background: rgba(0,100,0,0.3); border-color: #0a0; }
+.mdt-touch-btn.stab.deployed svg { fill: #0f0; }
+.mdt-touch-btn.stab.deployed span { color: #0f0; }
+
+/* MDT bottom bar */
+.mdt-bottom-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 8px; padding-top: 6px; border-top: 1px solid #0a2a0a;
+}
+.mdt-bottom-info { font-family: 'Share Tech Mono', monospace; font-size: 8px; color: #054; }
+.mdt-bottom-actions { display: flex; gap: 6px; }
+.mdt-action-btn {
+    padding: 3px 10px; border-radius: 3px;
+    background: rgba(0,30,0,0.3);
+    border: 1px solid #0a2a0a;
+    cursor: pointer;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 8px; color: #0a0; letter-spacing: 0.5px;
+    transition: all 0.1s;
+}
+.mdt-action-btn:active { background: rgba(0,200,0,0.2); border-color: #0f0; color: #0f0; }
+
+.mdt-housing.off .mdt-screen { background: #050505; }
+.mdt-housing.off .mdt-topbar, .mdt-housing.off .mdt-main, .mdt-housing.off .mdt-bottom-bar { opacity: 0.08; pointer-events: none; }
+
+/* Warning icon */
+.mdt-warn-icon {
+    display: flex; align-items: center; gap: 3px;
+    padding: 2px 6px; border-radius: 3px;
+    background: rgba(255,0,0,0.1);
+    border: 1px solid rgba(255,0,0,0.2);
+    opacity: 0; transition: opacity 0.3s;
+}
+.mdt-warn-icon.active { opacity: 1; }
+.mdt-warn-icon svg { width: 10px; height: 10px; fill: #f44; }
+.mdt-warn-icon span { font-family: 'Share Tech Mono', monospace; font-size: 7px; color: #f44; }
