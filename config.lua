@@ -60,6 +60,97 @@ Config.ControlGroups = {
 }
 
 -- ============================================
+-- SOUND EFFECTS
+-- Verschiedene Sounds pro Bewegungstyp
+--
+-- Sound-Typ        | Beschreibung               | Richtung? | Loop?
+-- -----------------|-----------------------------|-----------|------
+-- crane_rotate     | Kran Basis-Drehung          | Nein      | 2.0s
+-- crane_elevate    | Kran Hoch/Runter            | Nein      | 2.0s
+-- crane_extend     | Kran Ausfahren              | Nein      | 2.0s
+-- hydraulic        | Hydraulik-Zylinder          | JA ↑↓     | 2.2s
+-- stabilizer       | Schwerer Hangar-Motor       | Nein      | 2.5s
+-- elevator         | Aufzug-Loop                 | JA ↑↓     | 3.0s
+-- freight          | Fracht-Aufzug Motor         | Nein      | 2.5s
+-- winch            | Seilwinde                   | JA ↑↓     | 1.8s
+-- clamp            | Verriegelung (einmalig)     | Nein      | NEIN
+-- ============================================
+Config.SoundEffects = {
+    -- Kran: Basis-Drehung (Drehkranz)
+    crane_rotate = {
+        name         = 'Move_Base',
+        reference    = 'CRANE_SOUNDS',
+        loopInterval = 2000,
+        stopSound    = { name = 'Strain', reference = 'CRANE_SOUNDS' },
+    },
+
+    -- Kran: Neigung (Elevation hoch/runter)
+    crane_elevate = {
+        name         = 'Move_U_D',
+        reference    = 'CRANE_SOUNDS',
+        loopInterval = 2000,
+        stopSound    = { name = 'Strain', reference = 'CRANE_SOUNDS' },
+    },
+
+    -- Kran: Ausfahren/Einfahren (Extension)
+    crane_extend = {
+        name         = 'Move_L_R',
+        reference    = 'CRANE_SOUNDS',
+        loopInterval = 2000,
+        stopSound    = { name = 'Strain', reference = 'CRANE_SOUNDS' },
+    },
+
+    -- Hydraulik mit Richtungs-Sounds (Stützen, Arme, Neigung)
+    hydraulic = {
+        directional  = true,
+        upSound      = { name = 'Hydraulics_Up', reference = 'Lowrider_Super_Mod_Garage_Sounds' },
+        downSound    = { name = 'Hydraulics_Down', reference = 'Lowrider_Super_Mod_Garage_Sounds' },
+        loopInterval = 2200,
+        stopSound    = { name = 'Strain', reference = 'CRANE_SOUNDS' },
+    },
+
+    -- Stabilisatoren (schwerer Motor)
+    stabilizer = {
+        name         = 'hangar_doors_loop',
+        reference    = 'dlc_xm_facility_entry_exit_sounds',
+        loopInterval = 2500,
+        stopSound    = { name = 'hangar_doors_limit', reference = 'dlc_xm_facility_entry_exit_sounds' },
+    },
+
+    -- Aufzug-Style (für langsame vertikale Bewegungen)
+    elevator = {
+        directional  = true,
+        upSound      = { name = 'Elevator_Ascending_Loop', reference = 'DLC_IE_Garage_Elevator_Sounds' },
+        downSound    = { name = 'Elevator_Descending_Loop', reference = 'DLC_IE_Garage_Elevator_Sounds' },
+        loopInterval = 3000,
+        stopSound    = { name = 'Elevator_Stop', reference = 'DLC_IE_Garage_Elevator_Sounds' },
+    },
+
+    -- Frachtaufzug (industriell)
+    freight = {
+        name         = 'Motor_01',
+        reference    = 'FREIGHT_ELEVATOR_SOUNDS',
+        loopInterval = 2500,
+    },
+
+    -- Seilwinde (Seil rauf/runter)
+    winch = {
+        directional  = true,
+        upSound      = { name = 'Strain', reference = 'CRANE_SOUNDS' },
+        downSound    = { name = 'Strain_No_Container', reference = 'CRANE_SOUNDS' },
+        loopInterval = 1800,
+        stopSound    = { name = 'Clamp', reference = 'CRANE_SOUNDS' },
+    },
+
+    -- Verriegelung (einmal abspielen, kein Loop)
+    clamp = {
+        name         = 'Clamp',
+        reference    = 'CRANE_SOUNDS',
+        loopInterval = 0,
+    },
+}
+
+-- ============================================
 -- VEHICLES CONFIGURATION
 -- ============================================
 Config.Vehicles = {
@@ -73,8 +164,8 @@ Config.Vehicles = {
         description = 'Drehleiter mit Rettungskorb und Wasserwerfer',
 
         standingControl = {
-            requireBoneProp = 1,   -- Muss auf Bone-Prop #1 (ladder_base) stehen
-            maxDistance     = 3.0, -- Max Abstand zum Prop
+            requireBoneProp = 1,
+            maxDistance     = 3.0,
         },
 
         -- ======================
@@ -82,10 +173,10 @@ Config.Vehicles = {
         -- ======================
         -- Hierarchie:
         --   Fahrzeug (bodyshell)
-        --     └─ #1 Turm (dreht Z)
-        --         └─ #2 Leiter (hebt X)
-        --             └─ #3 Leiter Ausfahren (fährt Y)
-        --                 └─ #4 Korb (dreht Z)
+        --     └─ #1 Turm (dreht Z)          → crane_rotate   🔊 Drehkranz-Motor
+        --         └─ #2 Leiter (hebt X)      → crane_elevate  🔊 Kran Heben
+        --             └─ #3 Ausfahren (Y)     → crane_extend   🔊 Kran Teleskop
+        --                 └─ #4 Korb (kippt X) → hydraulic      🔊 Hydraulik ↑↓
         --                 └─ Cage-Prop
         --                 └─ Water-Prop
         bones = {
@@ -100,6 +191,7 @@ Config.Vehicles = {
                 default         = 0.0,
                 speed           = 0.09,
                 controlGroup    = 'turret',
+                soundEffect     = 'crane_rotate', -- 🔊 NEU: Drehkranz-Motor
                 propModel       = 'ladder_base',
                 attachTo        = 'vehicle',
                 attachBone      = 'bodyshell',
@@ -117,7 +209,7 @@ Config.Vehicles = {
                 default         = 0.0,
                 speed           = 0.05,
                 controlGroup    = 'ladder',
-                soundEffect     = 'hydraulic',
+                soundEffect     = 'crane_elevate', -- 🔊 GEÄNDERT: Kran Heben statt hydraulic
                 propModel       = 'ladder_main_0',
                 attachTo        = '1',
                 defaultOffset   = vector3(0.0, 0.5, 0.35),
@@ -134,7 +226,7 @@ Config.Vehicles = {
                 default         = 0.0,
                 speed           = 0.02,
                 controlGroup    = 'extend',
-                soundEffect     = 'hydraulic',
+                soundEffect     = 'crane_extend', -- 🔊 GEÄNDERT: Kran Teleskop statt hydraulic
                 propModel       = 'ladder_main_1',
                 attachTo        = '2',
                 defaultOffset   = vector3(0.0, 0.0, 0.0),
@@ -151,6 +243,7 @@ Config.Vehicles = {
                 default         = 0.0,
                 speed           = 0.3,
                 controlGroup    = 'basket',
+                soundEffect     = 'hydraulic', -- 🔊 NEU: Hydraulik-Zylinder ↑↓
                 propModel       = 'ladder_bucket',
                 attachTo        = '3',
                 defaultOffset   = vector3(0.0, 7.9, -0.2),
@@ -183,7 +276,7 @@ Config.Vehicles = {
         -- ======================
         cage = {
             enabled       = true,
-            useBoneProp   = 4, -- Direkt an Korb-Prop #4
+            useBoneProp   = 4,
             playerOffset  = vector3(0.0, 0.6, 1.0),
             enterDistance = 3.0,
             canControl    = true,
@@ -196,7 +289,7 @@ Config.Vehicles = {
         waterMonitor = {
             enabled        = true,
             propModel      = '',
-            attachTo       = '4', -- NEU: An Bone-Prop #4 (Korb) befestigt
+            attachTo       = '4',
             offset         = vector3(0.0, 1.0, 0.3),
             rotation       = vector3(0.0, 0.0, 0.0),
             particleEffect = 'core',
@@ -231,28 +324,28 @@ Config.Vehicles = {
                     attachTo  = '1',
                     offset    = vector3(0.0, 0.0, 0.0),
                     rotation  = vector3(0.0, 0.0, 0.0),
-                    invisible = true, -- ← unsichtbar, Bone-Prop ist der sichtbare
+                    invisible = true,
                 },
                 {
                     model     = 'ladder_main_0',
                     attachTo  = '2',
                     offset    = vector3(0.0, 0.0, 0.0),
                     rotation  = vector3(0.0, 0.0, 0.0),
-                    invisible = true, -- ← unsichtbar, Bone-Prop ist der sichtbare
+                    invisible = true,
                 },
                 {
                     model     = 'ladder_main_1',
                     attachTo  = '3',
                     offset    = vector3(0.0, 0.0, 0.0),
                     rotation  = vector3(0.0, 0.0, 0.0),
-                    invisible = true, -- ← unsichtbar
+                    invisible = true,
                 },
                 {
                     model     = 'ladder_bucket',
                     attachTo  = '4',
                     offset    = vector3(0.0, 0.0, 0.0),
                     rotation  = vector3(0.0, 0.0, 0.0),
-                    invisible = true, -- ← unsichtbar
+                    invisible = true,
                 },
             }
         },
@@ -278,10 +371,10 @@ Config.Vehicles = {
 
         -- Hierarchie:
         --   Fahrzeug (bodyshell)
-        --     └─ #1 Kran (dreht Z)
-        --         └─ #2 Ausleger (kippt X)
-        --             └─ #3 Ausleger Ausfahren (fährt Y)
-        --                 └─ #4 Seil (fährt Z runter)
+        --     └─ #1 Kran (dreht Z)           → crane_rotate   🔊 Drehkranz
+        --         └─ #2 Ausleger (kippt X)    → crane_elevate  🔊 Kran Heben
+        --             └─ #3 Ausfahren (Y)      → crane_extend   🔊 Kran Teleskop
+        --                 └─ #4 Seil (Z runter) → winch          🔊 Seilwinde ↑↓
         bones        = {
             -- #1: Kran Rotation → Numpad 4/6
             {
@@ -294,6 +387,7 @@ Config.Vehicles = {
                 default         = 0.0,
                 speed           = 0.5,
                 controlGroup    = 'crane',
+                soundEffect     = 'crane_rotate', -- 🔊 NEU: Drehkranz-Motor
                 propModel       = 'prop_roadcone02a',
                 attachTo        = 'vehicle',
                 attachBone      = 'bodyshell',
@@ -311,7 +405,7 @@ Config.Vehicles = {
                 default         = 0.0,
                 speed           = 0.3,
                 controlGroup    = 'arm',
-                soundEffect     = 'hydraulic',
+                soundEffect     = 'crane_elevate', -- 🔊 GEÄNDERT: Kran Heben statt hydraulic
                 propModel       = 'prop_roadcone02a',
                 attachTo        = '1',
                 defaultOffset   = vector3(0.0, 0.0, 0.5),
@@ -328,7 +422,7 @@ Config.Vehicles = {
                 default         = 0.0,
                 speed           = 0.12,
                 controlGroup    = 'extend',
-                soundEffect     = 'hydraulic',
+                soundEffect     = 'crane_extend', -- 🔊 GEÄNDERT: Kran Teleskop statt hydraulic
                 propModel       = 'prop_roadcone02a',
                 attachTo        = '2',
                 defaultOffset   = vector3(0.0, 0.5, 0.0),
@@ -345,7 +439,7 @@ Config.Vehicles = {
                 default         = 0.0,
                 speed           = 0.25,
                 controlGroup    = 'winch',
-                soundEffect     = 'winch',
+                soundEffect     = 'winch', -- 🔊 Seilwinde ↑↓ (unverändert)
                 propModel       = 'prop_roadcone02a',
                 attachTo        = '3',
                 defaultOffset   = vector3(0.0, 0.0, -0.5),
@@ -390,11 +484,10 @@ Config.Vehicles = {
 
         -- Hierarchie:
         --   Fahrzeug (bodyshell)
-        --     └─ #1 Plattform Basis (dreht Z)
-        --         └─ #2 Unterer Arm (kippt X)
-        --             └─ #3 Oberer Arm (kippt X)
-        --                 └─ #4 Korb Position (fährt Z)
-        --                     └─ #5 Korb Rotation (dreht Z)
+        --     └─ #1 Plattform (dreht Z)      → crane_rotate  🔊 Drehkranz
+        --         └─ #2 Unterer Arm (X)       → hydraulic     🔊 Hydraulik ↑↓
+        --             └─ #3 Oberer Arm (X)     → hydraulic     🔊 Hydraulik ↑↓
+        --                 └─ #4 Korb Pos (Z)   → elevator      🔊 Aufzug ↑↓
         --                     └─ Cage-Prop
         bones        = {
             -- #1: Plattform Rotation → Numpad 4/6
@@ -408,6 +501,7 @@ Config.Vehicles = {
                 default         = 0.0,
                 speed           = 0.35,
                 controlGroup    = 'turret',
+                soundEffect     = 'crane_rotate', -- 🔊 NEU: Drehkranz-Motor
                 propModel       = 'prop_roadcone02a',
                 attachTo        = 'vehicle',
                 attachBone      = 'bodyshell',
@@ -425,7 +519,7 @@ Config.Vehicles = {
                 default         = 0.0,
                 speed           = 0.2,
                 controlGroup    = 'arm',
-                soundEffect     = 'hydraulic',
+                soundEffect     = 'hydraulic', -- 🔊 Hydraulik ↑↓ (unverändert)
                 propModel       = 'prop_roadcone02a',
                 attachTo        = '1',
                 defaultOffset   = vector3(0.0, 0.0, 0.5),
@@ -442,7 +536,7 @@ Config.Vehicles = {
                 default         = 0.0,
                 speed           = 0.2,
                 controlGroup    = 'extend',
-                soundEffect     = 'hydraulic',
+                soundEffect     = 'hydraulic', -- 🔊 Hydraulik ↑↓ (unverändert)
                 propModel       = 'prop_roadcone02a',
                 attachTo        = '2',
                 defaultOffset   = vector3(0.0, 0.0, 0.5),
@@ -459,6 +553,7 @@ Config.Vehicles = {
                 default         = 0.0,
                 speed           = 0.15,
                 controlGroup    = 'basket',
+                soundEffect     = 'elevator', -- 🔊 NEU: Aufzug-Loop ↑↓
                 propModel       = 'prop_roadcone02a',
                 attachTo        = '3',
                 defaultOffset   = vector3(0.0, 0.0, 0.0),
@@ -516,9 +611,9 @@ Config.Vehicles = {
 
         -- Hierarchie:
         --   Fahrzeug (bodyshell)
-        --     └─ #1 Bühne Anheben (kippt X)
-        --         └─ #2 Bühne Ausfahren (fährt Y)
-        --             └─ #3 Korb Rotation (dreht Z)
+        --     └─ #1 Bühne (kippt X)          → hydraulic     🔊 Hydraulik ↑↓
+        --         └─ #2 Ausfahren (Y)          → crane_extend  🔊 Kran Teleskop
+        --             └─ #3 Korb (dreht Z)     → (kein Sound)
         --                 └─ Cage-Prop
         bones        = {
             -- #1: Bühne Anheben → Pfeil Hoch/Runter
@@ -532,7 +627,7 @@ Config.Vehicles = {
                 default         = 0.0,
                 speed           = 0.28,
                 controlGroup    = 'lift',
-                soundEffect     = 'hydraulic',
+                soundEffect     = 'hydraulic', -- 🔊 Hydraulik ↑↓ (unverändert)
                 propModel       = 'prop_roadcone02a',
                 attachTo        = 'vehicle',
                 attachBone      = 'bodyshell',
@@ -550,6 +645,7 @@ Config.Vehicles = {
                 default         = 0.0,
                 speed           = 0.12,
                 controlGroup    = 'extend',
+                soundEffect     = 'crane_extend', -- 🔊 NEU: Kran Teleskop-Motor
                 propModel       = 'prop_roadcone02a',
                 attachTo        = '1',
                 defaultOffset   = vector3(0.0, 0.5, 0.0),
@@ -566,6 +662,7 @@ Config.Vehicles = {
                 default         = 0.0,
                 speed           = 0.25,
                 controlGroup    = 'basket',
+                -- kein soundEffect (kleine Korb-Drehung)
                 propModel       = 'prop_roadcone02a',
                 attachTo        = '2',
                 defaultOffset   = vector3(0.0, 0.0, 0.0),
@@ -608,32 +705,6 @@ Config.Vehicles = {
         ui           = {
             theme = 'utility',
         }
-    },
-}
-
--- ============================================
--- SOUND EFFECTS
--- ============================================
-Config.SoundEffects = {
-    hydraulic = {
-        name      = 'Hydraulic',
-        volume    = 0.3,
-        reference = 'DLC_APT_YACHT_DOOR_SOUNDS',
-    },
-    winch = {
-        name      = 'Winch',
-        volume    = 0.4,
-        reference = 'DLC_EXEC_WAREHOUSE_LIFT',
-    },
-    stabilizer = {
-        name      = 'Stabilizer',
-        volume    = 0.25,
-        reference = 'DLC_APT_YACHT_DOOR_SOUNDS',
-    },
-    water_cannon = {
-        name      = 'WATERING_CAN_SPRINKLE',
-        volume    = 0.5,
-        reference = 'FAMILY_5_SOUNDS',
     },
 }
 

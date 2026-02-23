@@ -42,6 +42,9 @@ function StopControl()
 
     controlActive = false
 
+    -- Alle Sounds stoppen
+    StopAllBoneSounds()
+
     -- Notify server
     if currentVehicle then
         local netId = SafeGetNetId(currentVehicle)
@@ -56,10 +59,6 @@ function StopControl()
     -- Stop animations
     if controlMode == 'standing' or controlMode == 'remote' then
         ClearPedTasks(PlayerPedId())
-        if Config.Animations then
-            if Config.Animations.standing_control then RemoveAnimDict(Config.Animations.standing_control.dict) end
-            if Config.Animations.remote then RemoveAnimDict(Config.Animations.remote.dict) end
-        end
     end
 
     ShowNotification(GetTranslation('control_stopped'), 'info')
@@ -86,27 +85,14 @@ function ControlThread()
         end
         DisableControlAction(0, 21, true) -- Shift (für Shift-Combos)
 
-        -- Kamera + Kampf deaktivieren wenn ein NUI Panel mit Maus offen ist
-        if menuOpen or remoteActive then
-            DisableControlAction(0, 1, true)   -- Kamera X
-            DisableControlAction(0, 2, true)   -- Kamera Y
-            DisableControlAction(0, 24, true)  -- Angriff
-            DisableControlAction(0, 25, true)  -- Zielen
-            DisableControlAction(0, 37, true)  -- Waffe auswählen
-            DisableControlAction(0, 44, true)  -- Deckung
-            DisableControlAction(0, 47, true)  -- Waffe (G)
-            DisableControlAction(0, 58, true)  -- Waffe (Faust)
-            DisableControlAction(0, 75, true)  -- Fahrzeug aussteigen
-            DisableControlAction(0, 106, true) -- Mausrad
-            DisableControlAction(0, 140, true) -- Nahkampf
-            DisableControlAction(0, 141, true) -- Nahkampf 2
-            DisableControlAction(0, 142, true) -- Nahkampf 3
-            DisableControlAction(0, 257, true) -- Angriff 2
-            DisableControlAction(0, 263, true) -- Nahkampf Spezial
-            DisableControlAction(0, 264, true) -- Nahkampf Spezial 2
-        end
         if menuOpen then
-            DisableControlAction(0, 200, true) -- ESC/Pause nur bei Panel
+            DisableControlAction(0, 1, true)
+            DisableControlAction(0, 2, true)
+            DisableControlAction(0, 24, true)
+            DisableControlAction(0, 25, true)
+            DisableControlAction(0, 75, true)
+            DisableControlAction(0, 106, true)
+            DisableControlAction(0, 200, true)
         end
 
         -- Distance check
@@ -122,28 +108,14 @@ function ControlThread()
             end
         end
 
-        -- Animationen abspielen (aus Config.Animations)
-        local animConfig = nil
-        if controlMode == 'standing' then
-            animConfig = Config.Animations and Config.Animations.standing_control
-        elseif controlMode == 'remote' then
-            animConfig = Config.Animations and Config.Animations.remote
-            DisableControlAction(0, 30, true)
-            DisableControlAction(0, 31, true)
-        end
-
-        if animConfig and animConfig.dict and animConfig.anim then
-            if not IsEntityPlayingAnim(playerPed, animConfig.dict, animConfig.anim, 3) then
-                RequestAnimDict(animConfig.dict)
-                local timeout = 0
-                while not HasAnimDictLoaded(animConfig.dict) and timeout < 50 do
-                    Wait(10)
-                    timeout = timeout + 1
-                end
-                if HasAnimDictLoaded(animConfig.dict) then
-                    TaskPlayAnim(playerPed, animConfig.dict, animConfig.anim,
-                        2.0, -2.0, -1, animConfig.flag or 49, 0, false, false, false)
-                end
+        -- Animationen nur spielen, wenn das Panel NICHT offen ist
+        if not menuOpen then
+            if controlMode == 'standing' then
+                -- Animation Code
+            elseif controlMode == 'remote' then
+                -- Animation Code
+                DisableControlAction(0, 30, true)
+                DisableControlAction(0, 31, true)
             end
         end
 
@@ -267,11 +239,6 @@ function ActivateRemote(vehicle, vehicleName)
 
     -- Start control thread für Tasteneingaben
     CreateThread(ControlThread)
-
-    -- NUI Focus für Maus-Interaktion mit Remote Panel
-    SetNuiFocus(true, true)
-    SetNuiFocusKeepInput(true)
-
     OpenNuiPanel('remote', vehicle, vehicleName)
 
     ShowNotification(GetTranslation('remote_activated'), 'success')
@@ -282,6 +249,9 @@ function DeactivateRemote()
 
     remoteActive = false
     controlActive = false
+
+    -- Alle Sounds stoppen
+    StopAllBoneSounds()
 
     -- Notify server
     if currentVehicle then
@@ -295,15 +265,8 @@ function DeactivateRemote()
     HideCompactHud()
     CloseNuiPanel()
 
-    -- NUI Focus freigeben
-    SetNuiFocus(false, false)
-    SetNuiFocusKeepInput(false)
-
     -- Stop animations
     ClearPedTasks(PlayerPedId())
-    if Config.Animations and Config.Animations.remote then
-        RemoveAnimDict(Config.Animations.remote.dict)
-    end
 
     currentVehicle = nil
     currentVehicleName = nil

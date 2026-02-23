@@ -9,7 +9,7 @@ controlMode = nil
 menuOpen = false     -- GLOBAL: Sichtbar in allen Dateien
 remoteActive = false -- GLOBAL: Sichtbar in allen Dateien
 local isResetting = false
-local lastSoundTime = {}
+-- Sound-Tracking jetzt in sounds.lua (MarkBoneMoving System)
 local lastSyncTime = {}
 
 -- ============================================
@@ -343,15 +343,22 @@ function ApplyBoneControl(vehicle, bone, value)
     -- Kinder-Props aktualisieren
     UpdateChildProps(vehicle, netId, boneIndex, state)
 
-    -- Sound NUR wenn sich Wert ändert + Cooldown 500ms
-    if bone.soundEffect and Config.SoundEffects and Config.SoundEffects[bone.soundEffect] then
-        local key = netId .. '_' .. boneIndex
-        local now = GetGameTimer()
-        local lastVal = lastSoundTime[key]
+    -- Sound: Bone bewegt sich → MarkBoneMoving (sounds.lua)
+    if bone.soundEffect then
+        -- Richtung erkennen (positiv = hoch/ausfahren, negativ = runter/einfahren)
+        local direction = 0
+        local oldVal = state.controlValues[boneIndex] or 0
+        if value > oldVal then
+            direction = 1
+        elseif value < oldVal then
+            direction = -1
+        end
 
-        if not lastVal or (now - lastVal) > 500 then
-            lastSoundTime[key] = now
-            PlaySoundEffect(bone.soundEffect)
+        -- Nicht am Limit? Dann Sound markieren
+        local atMin = (bone.min and math.abs(value - bone.min) < 0.001)
+        local atMax = (bone.max and math.abs(value - bone.max) < 0.001)
+        if not atMin and not atMax and direction ~= 0 then
+            MarkBoneMoving(vehicle, boneIndex, bone.soundEffect, direction)
         end
     end
 end
@@ -618,6 +625,9 @@ function CloseControlPanel()
     menuOpen = false
     controlActive = false
 
+    -- Alle Sounds stoppen
+    StopAllBoneSounds()
+
     -- Notify server
     if currentVehicle then
         local netId = SafeGetNetId(currentVehicle)
@@ -651,13 +661,9 @@ function HideCompactHud()
 end
 
 -- ============================================
--- SOUND SYSTEM
+-- SOUND SYSTEM → sounds.lua
+-- PlaySoundEffect entfernt, jetzt MarkBoneMoving() + Sound Thread
 -- ============================================
-function PlaySoundEffect(soundName)
-    if not Config.SoundEffects or not Config.SoundEffects[soundName] then return end
-    local sound = Config.SoundEffects[soundName]
-    PlaySoundFrontend(-1, sound.name, sound.reference, true)
-end
 
 -- ============================================
 -- RESET
@@ -665,6 +671,9 @@ end
 function ResetAllControls(vehicle)
     if isResetting then return end
     isResetting = true
+
+    -- Alle Sounds stoppen
+    StopAllBoneSounds()
 
     local state = GetVehicleState(vehicle)
     if not state then

@@ -14,6 +14,7 @@ shared_scripts {
 client_scripts {
     'client/main.lua',
     'client/controls.lua',
+    'client/sounds.lua',
     'client/cage.lua',
     'client/water.lua',
     'client/collision.lua',
