@@ -61,6 +61,8 @@ function StopControl()
             if Config.Animations.remote then RemoveAnimDict(Config.Animations.remote.dict) end
         end
     end
+    -- Alle Sounds stoppen
+    StopAllBoneSounds()
 
     ShowNotification(GetTranslation('control_stopped'), 'info')
 
@@ -309,6 +311,8 @@ function DeactivateRemote()
     currentVehicleName = nil
     currentConfig = nil
     controlMode = nil
+    -- Alle Sounds stoppen
+    StopAllBoneSounds()
 
     ShowNotification(GetTranslation('remote_deactivated'), 'info')
 end

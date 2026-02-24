@@ -342,25 +342,6 @@ function ApplyBoneControl(vehicle, bone, value)
 
     -- Kinder-Props aktualisieren
     UpdateChildProps(vehicle, netId, boneIndex, state)
-
-    -- Sound: Bone bewegt sich → MarkBoneMoving (sounds.lua)
-    if bone.soundEffect then
-        -- Richtung erkennen (positiv = hoch/ausfahren, negativ = runter/einfahren)
-        local direction = 0
-        local oldVal = state.controlValues[boneIndex] or 0
-        if value > oldVal then
-            direction = 1
-        elseif value < oldVal then
-            direction = -1
-        end
-
-        -- Nicht am Limit? Dann Sound markieren
-        local atMin = (bone.min and math.abs(value - bone.min) < 0.001)
-        local atMax = (bone.max and math.abs(value - bone.max) < 0.001)
-        if not atMin and not atMax and direction ~= 0 then
-            MarkBoneMoving(vehicle, boneIndex, bone.soundEffect, direction)
-        end
-    end
 end
 
 -- Kinder-Props rekursiv aktualisieren wenn Parent sich bewegt
@@ -467,6 +448,22 @@ function UpdateControl(vehicle, boneIndex, delta)
     if newValue ~= currentValue then
         state.controlValues[boneIndex] = newValue
         ApplyBoneControl(vehicle, bone, newValue)
+
+        -- Sound: Bone bewegt sich → MarkBoneMoving (sounds.lua)
+        if bone.soundEffect then
+            local direction = 0
+            if newValue > currentValue then
+                direction = 1
+            elseif newValue < currentValue then
+                direction = -1
+            end
+
+            local atMin = (bone.min and math.abs(newValue - bone.min) < 0.001)
+            local atMax = (bone.max and math.abs(newValue - bone.max) < 0.001)
+            if not atMin and not atMax and direction ~= 0 then
+                MarkBoneMoving(vehicle, boneIndex, bone.soundEffect, direction)
+            end
+        end
 
         local now = GetGameTimer()
         local key = boneIndex
