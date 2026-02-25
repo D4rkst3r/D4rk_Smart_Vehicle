@@ -4,94 +4,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>D4rk Smart Vehicle</title>
+    <title>Wiwang Smart Vehicle</title>
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="../css/panels.css">
 </head>
 
 <body>
-    <!-- Main Control Panel -->
-    <div id="controlPanel" class="panel hidden" style="display: none;">
-        <div class="panel-header">
-            <div class="vehicle-info">
-                <h1 id="vehicleLabel">Fahrzeug Steuerung</h1>
-                <p id="vehicleDescription"></p>
-            </div>
-            <div class="close-btn" onclick="closePanel()">✕</div>
-        </div>
-
-        <div class="panel-body">
-            <!-- Status Display -->
-            <div class="status-section">
-                <div class="status-item">
-                    <span class="status-label">Modus:</span>
-                    <span class="status-value" id="controlMode">Im Fahrzeug</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">Stützen:</span>
-                    <span class="status-value" id="stabilizersStatus">Eingefahren</span>
-                </div>
-                <div class="status-item" id="cageStatus" style="display: none;">
-                    <span class="status-label">Korb:</span>
-                    <span class="status-value" id="cageOccupants">0/2</span>
-                </div>
-            </div>
-
-            <!-- Control Groups -->
-            <div id="controlGroups" class="control-groups">
-                <!-- Dynamically populated -->
-            </div>
-
-            <!-- Quick Actions -->
-            <div class="quick-actions">
-                <button id="stabilizersBtn" class="action-btn" onclick="toggleStabilizers()">
-                    <span class="btn-icon">⚙️</span>
-                    <span>Stützen</span>
-                </button>
-                <button id="waterBtn" class="action-btn hidden" onclick="toggleWater()">
-                    <span class="btn-icon">💧</span>
-                    <span>Wasserwerfer</span>
-                </button>
-                <button id="cageBtn" class="action-btn hidden" onclick="enterCage()">🧺 Korb</button>
-                <button class="action-btn reset" onclick="resetAll()">
-                    <span class="btn-icon">🔄</span>
-                    <span>Alles Zurücksetzen</span>
-                </button>
-            </div>
-        </div>
-
-        <div class="panel-footer">
-            <div class="controls-hint">
-                <span>🎮 Pfeiltasten zum Steuern</span>
-                <span>|</span>
-                <span>ESC zum Schließen</span>
-            </div>
-        </div>
-    </div>
-
-    <!-- Compact HUD (during control) -->
-    <div id="compactHud" class="compact-hud hidden" style="display: none;">
-        <div class="hud-header">
-            <span id="hudVehicleName">Fahrzeug</span>
-            <span id="hudControlMode" class="mode-badge">AKTIV</span>
-        </div>
-        <div class="hud-controls" id="hudControls">
-            <!-- Dynamically populated with active controls -->
-        </div>
-        <div class="hud-hints">
-            <span>↑↓←→ Steuern</span>
-            <span>G Stützen</span>
-            <span>E Menü</span>
-        </div>
-    </div>
-
-    <!-- Cage Prompt -->
-    <div id="cagePrompt" class="prompt hidden" style="display: none;">
-        <div class="prompt-content">
-            <span class="prompt-icon">🧍</span>
-            <span class="prompt-text">Drücke E um in den Korb zu steigen</span>
-        </div>
-    </div>
 
     <!-- Notification System -->
     <div id="notifications"></div>
@@ -110,7 +28,7 @@
             <div class="lp-screw br"></div>
 
             <div class="lp-status-bar">
-                <span class="lp-status-label">D4RK LADDER CTRL</span>
+                <span class="lp-status-label">Wiwang LADDER CTRL</span>
                 <div class="lp-status-lights">
                     <div class="lp-led" id="lpLedWarn"></div>
                     <div class="lp-led" id="lpLedPower"></div>
@@ -221,7 +139,7 @@
             <div class="rc-antenna"></div>
             <div class="rc-signal" id="rcSignal"></div>
 
-            <div class="rc-brand">D4RK REMOTE</div>
+            <div class="rc-brand">Wiwang REMOTE</div>
 
             <div class="rc-lcd-frame">
                 <div class="rc-lcd">
@@ -325,7 +243,7 @@
     <div id="dashboardPanelOverlay" class="d4rk-panel-overlay dashboard-mode">
         <div class="mdt-housing" id="dashboardPanel">
             <div class="mdt-bezel">
-                <span class="mdt-brand-text">D4RK SYSTEMS</span>
+                <span class="mdt-brand-text">Wiwang SYSTEMS</span>
                 <div class="mdt-leds">
                     <span class="mdt-led-label">PWR</span>
                     <div class="mdt-led" id="mdtLedPwr"></div>

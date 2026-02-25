@@ -111,7 +111,7 @@ Config.Vehicles = {
                 propModel       = 'ladder_base',
                 attachTo        = 'vehicle',
                 attachBone      = 'bodyshell',
-                defaultOffset   = vector3(-0.02, -4.82, 1.64),
+                defaultOffset   = vector3(0.0, -4.82, 1.64),
                 defaultRotation = vector3(0.0, 0.0, 0.0),
             },
             -- #2: Leiter Anheben → Pfeil Hoch/Runter
@@ -128,7 +128,7 @@ Config.Vehicles = {
                 soundEffect     = true,
                 propModel       = 'ladder_main_0',
                 attachTo        = '1',
-                defaultOffset   = vector3(0.0, 0.5, 0.35),
+                defaultOffset   = vector3(0.0, 0.28, 0.03),
                 defaultRotation = vector3(0.0, 0.0, 0.0),
             },
             -- #3: Leiter Ausfahren → Q/Z
@@ -145,7 +145,7 @@ Config.Vehicles = {
                 soundEffect     = true,
                 propModel       = 'ladder_main_1',
                 attachTo        = '2',
-                defaultOffset   = vector3(0.0, 0.0, 0.0),
+                defaultOffset   = vector3(0.0, 0.28, 0.03),
                 defaultRotation = vector3(0.0, 0.0, 0.0),
             },
             -- #4: Korb neigen → Shift+Q/Z
