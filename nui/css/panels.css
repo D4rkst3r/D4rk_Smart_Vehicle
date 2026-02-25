@@ -55,6 +55,7 @@
     border: 2px solid #555;
     box-shadow: 0 0 0 1px #1a1a1a, 0 0 0 3px #444, inset 0 1px 0 rgba(255,255,255,0.1), 0 15px 40px rgba(0,0,0,0.6);
     font-family: 'Oxanium', sans-serif;
+    transform-origin: bottom center;
 }
 .lp-frame::before {
     content: '';
@@ -339,6 +340,7 @@
     border: 1.5px solid #444;
     box-shadow: 0 0 0 1px #111, 0 12px 35px rgba(0,0,0,0.6);
     font-family: 'Oxanium', sans-serif;
+    transform-origin: center right;
 }
 .rc-body::before, .rc-body::after {
     content: '';
@@ -536,6 +538,7 @@
     box-shadow: 0 0 0 1px #0a0a0a, 0 0 0 4px #2a2a2a, 0 10px 30px rgba(0,0,0,0.7);
     overflow: hidden;
     font-family: 'Oxanium', sans-serif;
+    transform-origin: bottom right;
 }
 
 .mdt-bezel {

@@ -452,11 +452,40 @@
   // ============================================
   // INIT
   // ============================================
+  function applyScreenScale() {
+    var scale = window.innerWidth / 1920;
+
+    // Nur die Panel-Frames skalieren, NICHT den Body
+    // So bleibt die Overlay-Positionierung (fixed, inset:0, flexbox) intakt
+    var frames = [".lp-frame", ".rc-body", ".mdt-housing"];
+    frames.forEach(function (selector) {
+      var el = document.querySelector(selector);
+      if (el) {
+        el.style.transform = "scale(" + scale + ")";
+      }
+    });
+
+    console.log(
+      "[D4rk Panels] Screen scale: " +
+        scale.toFixed(2) +
+        " (" +
+        window.innerWidth +
+        "px)",
+    );
+  }
+
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", bindButtons);
+    document.addEventListener("DOMContentLoaded", function () {
+      bindButtons();
+      applyScreenScale();
+    });
   } else {
     bindButtons();
+    applyScreenScale();
   }
+
+  // Bei Fenster-Resize neu skalieren
+  window.addEventListener("resize", applyScreenScale);
 
   console.log("[D4rk Panels] Initialized — Ladder, Remote, Dashboard ready");
 })();
